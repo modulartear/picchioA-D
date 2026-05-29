@@ -149,10 +149,16 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .header__inner {
   display: flex; align-items: center; justify-content: space-between;
-  height: 72px;
+  height: 86px;
 }
 .header__logo { display: flex; align-items: center; gap: 10px; }
-.header__logo img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+.header__logo img,
+.header__logo-img {
+  height: 58px;
+  width: auto;
+  border-radius: 0;
+  object-fit: contain;
+}
 .header__logo-text { display: flex; flex-direction: column; line-height: 1; }
 .header__logo-text b { font-weight: 700; font-size: 16px; letter-spacing: .04em; }
 .header__logo-text span { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
