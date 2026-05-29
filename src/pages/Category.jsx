@@ -87,9 +87,11 @@ export function Category() {
   }, [list, sort, activeChip]);
 
   if (categories.error || products.error || site.error) {
+    const msg = categories.error || products.error || site.error;
     return (
       <div className="container" style={{ padding: 100 }}>
-        Error cargando categoría
+        <h2 className="h-section">Error cargando categoría</h2>
+        <p className="muted" style={{ marginTop: 12 }}>{msg}</p>
       </div>
     );
   }

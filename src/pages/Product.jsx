@@ -38,7 +38,14 @@ export function Product() {
     return product ? list.filter((p) => p.id !== product.id).slice(0, 4) : [];
   }, [relatedState.data, product]);
 
-  if (productState.error) return <div className="container" style={{ padding: 100 }}>Producto no encontrado</div>;
+  if (productState.error) {
+    return (
+      <div className="container" style={{ padding: 100 }}>
+        <h2 className="h-section">Error cargando producto</h2>
+        <p className="muted" style={{ marginTop: 12 }}>{productState.error}</p>
+      </div>
+    );
+  }
   if (productState.loading) return <div className="container" style={{ padding: 80 }}><p className="muted">Cargando…</p></div>;
   if (!product) return <div className="container" style={{ padding: 100 }}>Producto no encontrado</div>;
 

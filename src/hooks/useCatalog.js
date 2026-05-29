@@ -9,6 +9,13 @@ import {
   fetchTestimonials,
 } from "../services/catalog";
 
+function describeError(e) {
+  const code = e?.code ? String(e.code) : "";
+  const message = e?.message ? String(e.message) : "";
+  if (code && message) return `${code}: ${message}`;
+  return message || code || "Error";
+}
+
 export function useCategories() {
   const [state, setState] = useState({ loading: true, data: [], error: "" });
 
@@ -21,7 +28,7 @@ export function useCategories() {
       })
       .catch((e) => {
         if (!alive) return;
-        setState({ loading: false, data: [], error: e?.message || "Error" });
+        setState({ loading: false, data: [], error: describeError(e) });
       });
     return () => {
       alive = false;
@@ -43,7 +50,7 @@ export function useFeaturedProducts(limit = 8) {
       })
       .catch((e) => {
         if (!alive) return;
-        setState({ loading: false, data: [], error: e?.message || "Error" });
+        setState({ loading: false, data: [], error: describeError(e) });
       });
     return () => {
       alive = false;
@@ -67,7 +74,7 @@ export function useProductsByCategory(slug) {
       })
       .catch((e) => {
         if (!alive) return;
-        setState({ loading: false, data: [], error: e?.message || "Error" });
+        setState({ loading: false, data: [], error: describeError(e) });
       });
     return () => {
       alive = false;
@@ -91,7 +98,7 @@ export function useProduct(id) {
       })
       .catch((e) => {
         if (!alive) return;
-        setState({ loading: false, data: null, error: e?.message || "Error" });
+        setState({ loading: false, data: null, error: describeError(e) });
       });
     return () => {
       alive = false;
@@ -113,7 +120,7 @@ export function useSiteContent() {
       })
       .catch((e) => {
         if (!alive) return;
-        setState({ loading: false, data: { img: {} }, error: e?.message || "Error" });
+        setState({ loading: false, data: { img: {} }, error: describeError(e) });
       });
     return () => {
       alive = false;
@@ -140,7 +147,7 @@ export function useHomeContent() {
       })
       .catch((e) => {
         if (!alive) return;
-        setProjects({ loading: false, data: [], error: e?.message || "Error" });
+        setProjects({ loading: false, data: [], error: describeError(e) });
       });
     return () => {
       alive = false;
@@ -156,7 +163,7 @@ export function useHomeContent() {
       })
       .catch((e) => {
         if (!alive) return;
-        setTestimonials({ loading: false, data: [], error: e?.message || "Error" });
+        setTestimonials({ loading: false, data: [], error: describeError(e) });
       });
     return () => {
       alive = false;
@@ -178,4 +185,3 @@ export function useHomeContent() {
 
   return { loading, error, data };
 }
-
