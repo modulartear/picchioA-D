@@ -70,7 +70,7 @@ export function Admin() {
       featured: false,
       active: true,
       colors: [],
-      specsJson: "{}",
+      specs: {},
     }),
     [],
   );
@@ -241,12 +241,7 @@ export function Admin() {
     setStatus({ type: "", message: "" });
     if (!prodDraft.id || !prodDraft.name) return setStatus({ type: "err", message: "ID y nombre son obligatorios" });
 
-    let specs = {};
-    try {
-      specs = JSON.parse(prodDraft.specsJson || "{}");
-    } catch (_) {
-      return setStatus({ type: "err", message: "specs: JSON inválido" });
-    }
+    const specs = prodDraft?.specs && typeof prodDraft.specs === "object" ? prodDraft.specs : {};
 
     try {
       const catName = deriveCatName(prodDraft.cat);
@@ -297,7 +292,7 @@ export function Admin() {
       featured: !!p.featured,
       active: p.active !== false,
       colors: Array.isArray(p.colors) ? p.colors : [],
-      specsJson: JSON.stringify(p.specs || {}, null, 2),
+      specs: p?.specs && typeof p.specs === "object" ? p.specs : {},
     });
     setColorName("");
     setColorHex("#111111");
@@ -668,10 +663,6 @@ export function Admin() {
                       </div>
                     </div>
                   </Field>
-                  <Field label="Specs (JSON)">
-                    <textarea value={prodDraft.specsJson} onChange={(e) => setProdDraft((p) => ({ ...p, specsJson: e.target.value }))} spellCheck={false} />
-                  </Field>
-
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <button className="btn btn--accent">Guardar</button>
                     <button type="button" className="btn btn--ghost" onClick={() => setProdDraft(blankProduct)}>
