@@ -33,8 +33,16 @@ export function CartProvider({ children }) {
     toastTimer.current = setTimeout(() => setToast((s) => ({ ...s, show: false })), 2400);
   };
 
+  const fmtMoney = (amount) => {
+    if (!Number.isFinite(amount)) return null;
+    return `$${amount.toLocaleString("es-AR")}`;
+  };
+
   const addToCart = (product, color) => {
     const uid = String(product.id) + "::" + String(color?.name || "default");
+    const priceFromProduct = Number.isFinite(product?.price) ? product.price : null;
+    const priceAmount = priceFromProduct ?? (Number.isFinite(product?.priceAmount) ? product.priceAmount : null);
+    const priceLabel = fmtMoney(priceAmount) ?? product.priceLabel ?? null;
     setItems((prev) => {
       const existing = prev.find((x) => x.uid === uid);
       if (existing) return prev.map((x) => (x.uid === uid ? { ...x, qty: x.qty + 1 } : x));
@@ -47,8 +55,8 @@ export function CartProvider({ children }) {
           image: product.imageUrl || product.image,
           color,
           qty: 1,
-          priceAmount: product.priceAmount,
-          priceLabel: product.priceLabel,
+          priceAmount,
+          priceLabel,
           meta: product.meta,
           cat: product.cat,
           catName: product.catName,
@@ -100,4 +108,3 @@ export function useCart() {
   if (!ctx) throw new Error("CartProvider no está montado");
   return ctx;
 }
-

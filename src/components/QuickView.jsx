@@ -3,6 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { Icon } from "./icons";
 
+function fmtPrice(product) {
+  const price = product?.price;
+  if (Number.isFinite(price)) return `$${price.toLocaleString("es-AR")}`;
+  return "Consultar";
+}
+
 export function QuickView() {
   const nav = useNavigate();
   const { quickViewProduct: product, setQuickViewProduct, addToCart } = useCart();
@@ -59,7 +65,7 @@ export function QuickView() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 600 }}>Precio</span>
                 <span className="muted" style={{ fontSize: 14 }}>
-                  Consultar
+                  {fmtPrice(product)}
                 </span>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

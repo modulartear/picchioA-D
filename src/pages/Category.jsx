@@ -5,6 +5,12 @@ import { Icon } from "../components/icons";
 import { useCart } from "../context/CartContext";
 import { useCategories, useProductsByCategory, useSiteContent } from "../hooks/useCatalog";
 
+function fmtPrice(product) {
+  const price = product?.price;
+  if (Number.isFinite(price)) return `$${price.toLocaleString("es-AR")}`;
+  return "Consultar precio";
+}
+
 function ProductCard({ product }) {
   const nav = useNavigate();
   const { addToCart, setQuickViewProduct } = useCart();
@@ -31,7 +37,7 @@ function ProductCard({ product }) {
       <div className="card__body">
         <span className="card__cat">{product.catName}</span>
         <div className="card__title">{product.name}</div>
-        <div className="card__price">Consultar precio</div>
+        <div className="card__price">{fmtPrice(product)}</div>
         {product.colors && product.colors.length > 1 && (
           <div className="card__variants" onClick={(e) => e.stopPropagation()}>
             {product.colors.slice(0, 5).map((c) => (

@@ -1,4 +1,5 @@
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { deleteField } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, firebaseConfigured } from "../firebase";
@@ -64,16 +65,37 @@ export function Admin() {
       tagline: "",
       desc: "",
       imageUrl: "",
+      price: "",
       badge: "",
       featured: false,
       active: true,
-      colorsJson: "[]",
+      colors: [],
       specsJson: "{}",
     }),
     [],
   );
   const [prodDraft, setProdDraft] = useState(blankProduct);
   const [uploading, setUploading] = useState(false);
+  const [colorName, setColorName] = useState("");
+  const [colorHex, setColorHex] = useState("#111111");
+
+  const palette = useMemo(
+    () => [
+      { name: "Negro", hex: "#111111" },
+      { name: "Blanco", hex: "#F5F3EE" },
+      { name: "Gris", hex: "#9CA3AF" },
+      { name: "Grafito", hex: "#374151" },
+      { name: "Beige", hex: "#D6C7B2" },
+      { name: "Arena", hex: "#C9B79C" },
+      { name: "Visón", hex: "#A89F91" },
+      { name: "Nogal", hex: "#6B4E3D" },
+      { name: "Roble", hex: "#B08D57" },
+      { name: "Verde", hex: "#1F7A4D" },
+      { name: "Azul", hex: "#1D4ED8" },
+      { name: "Terracota", hex: "#B45309" },
+    ],
+    [],
+  );
 
   function describeError(err) {
     const code = err?.code ? String(err.code) : "";
@@ -186,22 +208,58 @@ export function Admin() {
     return c?.name || slug;
   }
 
+  function normalizeHex(v) {
+    const s = String(v || "").trim();
+    if (!s) return "";
+    if (s.startsWith("#")) return s.toUpperCase();
+    return ("#" + s).toUpperCase();
+  }
+
+  function addColor(next) {
+    const name = String(next?.name || "").trim();
+    const hex = normalizeHex(next?.hex);
+    if (!name) return setStatus({ type: "err", message: "Color: falta el nombre" });
+    if (!/^#[0-9A-F]{6}$/i.test(hex)) return setStatus({ type: "err", message: "Color: hex inválido (ej: #FFFFFF)" });
+    setProdDraft((p) => {
+      const existing = Array.isArray(p.colors) ? p.colors : [];
+      const withoutSameName = existing.filter((c) => String(c?.name || "").toLowerCase() !== name.toLowerCase());
+      return { ...p, colors: [...withoutSameName, { name, hex }] };
+    });
+    setColorName("");
+    setStatus({ type: "", message: "" });
+  }
+
+  function removeColor(name) {
+    setProdDraft((p) => {
+      const existing = Array.isArray(p.colors) ? p.colors : [];
+      return { ...p, colors: existing.filter((c) => c?.name !== name) };
+    });
+  }
+
   async function onSaveProduct(e) {
     e?.preventDefault();
     setStatus({ type: "", message: "" });
     if (!prodDraft.id || !prodDraft.name) return setStatus({ type: "err", message: "ID y nombre son obligatorios" });
 
-    let colors = [];
     let specs = {};
     try {
-      colors = JSON.parse(prodDraft.colorsJson || "[]");
       specs = JSON.parse(prodDraft.specsJson || "{}");
     } catch (_) {
-      return setStatus({ type: "err", message: "colors/specs: JSON inválido" });
+      return setStatus({ type: "err", message: "specs: JSON inválido" });
     }
 
     try {
       const catName = deriveCatName(prodDraft.cat);
+      const rawPrice = String(prodDraft.price || "").trim();
+      const price =
+        rawPrice.length === 0
+          ? deleteField()
+          : (() => {
+              const n = Number(rawPrice);
+              if (!Number.isFinite(n) || n < 0) throw new Error("Precio inválido");
+              return n;
+            })();
+
       await upsertProduct(prodDraft.id, {
         id: prodDraft.id,
         name: prodDraft.name,
@@ -211,10 +269,11 @@ export function Admin() {
         desc: prodDraft.desc,
         imageUrl: prodDraft.imageUrl,
         image: prodDraft.imageUrl,
+        price,
         badge: prodDraft.badge || "",
         featured: !!prodDraft.featured,
         active: !!prodDraft.active,
-        colors,
+        colors: Array.isArray(prodDraft.colors) ? prodDraft.colors : [],
         specs,
       });
       setProdDraft(blankProduct);
@@ -233,12 +292,15 @@ export function Admin() {
       tagline: p.tagline || "",
       desc: p.desc || "",
       imageUrl: p.imageUrl || p.image || "",
+      price: p.price == null ? "" : String(p.price),
       badge: p.badge || "",
       featured: !!p.featured,
       active: p.active !== false,
-      colorsJson: JSON.stringify(p.colors || [], null, 2),
+      colors: Array.isArray(p.colors) ? p.colors : [],
       specsJson: JSON.stringify(p.specs || {}, null, 2),
     });
+    setColorName("");
+    setColorHex("#111111");
     setTab("products");
   }
 
@@ -524,23 +586,87 @@ export function Admin() {
                   </label>
 
                   <div className="field-grid">
+                    <Field label="Precio (ARS)">
+                      <input
+                        inputMode="numeric"
+                        value={prodDraft.price}
+                        placeholder="Ej: 125000"
+                        onChange={(e) => setProdDraft((p) => ({ ...p, price: e.target.value }))}
+                      />
+                    </Field>
                     <Field label="Badge">
                       <input value={prodDraft.badge} onChange={(e) => setProdDraft((p) => ({ ...p, badge: e.target.value }))} />
                     </Field>
+                  </div>
+
+                  <div className="field-grid">
                     <Field label="Destacado">
                       <select value={prodDraft.featured ? "1" : "0"} onChange={(e) => setProdDraft((p) => ({ ...p, featured: e.target.value === "1" }))}>
                         <option value="0">No</option>
                         <option value="1">Sí</option>
                       </select>
                     </Field>
+                    <Field label="Activo">
+                      <select value={prodDraft.active ? "1" : "0"} onChange={(e) => setProdDraft((p) => ({ ...p, active: e.target.value === "1" }))}>
+                        <option value="1">Sí</option>
+                        <option value="0">No</option>
+                      </select>
+                    </Field>
                   </div>
-                  <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <input type="checkbox" checked={!!prodDraft.active} onChange={(e) => setProdDraft((p) => ({ ...p, active: e.target.checked }))} />
-                    Activo
-                  </label>
 
-                  <Field label="Colors (JSON)">
-                    <textarea value={prodDraft.colorsJson} onChange={(e) => setProdDraft((p) => ({ ...p, colorsJson: e.target.value }))} spellCheck={false} />
+                  <Field label="Colores">
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                        <input style={{ flex: 1, minWidth: 160 }} value={colorName} placeholder="Nombre (ej: Nogal)" onChange={(e) => setColorName(e.target.value)} />
+                        <input type="color" value={colorHex} onChange={(e) => setColorHex(e.target.value)} style={{ width: 52, height: 44, padding: 0 }} />
+                        <input style={{ width: 120 }} value={colorHex} onChange={(e) => setColorHex(e.target.value)} />
+                        <button type="button" className="btn btn--ghost btn--sm" onClick={() => addColor({ name: colorName, hex: colorHex })}>
+                          Agregar
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {palette.map((c) => (
+                          <button
+                            key={c.name}
+                            type="button"
+                            className="btn btn--ghost btn--sm"
+                            onClick={() => {
+                              setColorName((v) => v || c.name);
+                              setColorHex(c.hex);
+                            }}
+                            style={{ display: "flex", alignItems: "center", gap: 8 }}
+                          >
+                            <span style={{ width: 14, height: 14, borderRadius: 999, background: c.hex, border: "1px solid var(--line)" }} />
+                            {c.name}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {(Array.isArray(prodDraft.colors) ? prodDraft.colors : []).map((c) => (
+                          <div
+                            key={c.name}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              border: "1px solid var(--line-strong)",
+                              borderRadius: 999,
+                              padding: "8px 10px",
+                              background: "var(--bg)",
+                            }}
+                          >
+                            <span style={{ width: 14, height: 14, borderRadius: 999, background: c.hex, border: "1px solid var(--line)" }} />
+                            <span style={{ fontSize: 13, fontWeight: 600 }}>{c.name}</span>
+                            <button type="button" className="btn btn--ghost btn--sm" onClick={() => removeColor(c.name)} style={{ padding: "6px 10px" }}>
+                              Quitar
+                            </button>
+                          </div>
+                        ))}
+                        {(Array.isArray(prodDraft.colors) ? prodDraft.colors : []).length === 0 && <span className="muted">Sin colores</span>}
+                      </div>
+                    </div>
                   </Field>
                   <Field label="Specs (JSON)">
                     <textarea value={prodDraft.specsJson} onChange={(e) => setProdDraft((p) => ({ ...p, specsJson: e.target.value }))} spellCheck={false} />
@@ -569,7 +695,7 @@ export function Admin() {
                       <div style={{ display: "flex", flexDirection: "column" }}>
                         <b>{p.name}</b>
                         <span className="muted" style={{ fontSize: 12 }}>
-                          {p.id} · {p.cat} {p.active === false ? "· inactivo" : ""} {p.featured ? "· destacado" : ""}
+                          {p.id} · {p.cat} {Number.isFinite(p?.price) ? `· $${p.price.toLocaleString("es-AR")}` : ""} {p.active === false ? "· inactivo" : ""} {p.featured ? "· destacado" : ""}
                         </span>
                       </div>
                     </div>
