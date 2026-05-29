@@ -149,12 +149,12 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .header__inner {
   display: flex; align-items: center; justify-content: space-between;
-  height: 86px;
+  height: 104px;
 }
 .header__logo { display: flex; align-items: center; gap: 10px; }
 .header__logo img,
 .header__logo-img {
-  height: 58px;
+  height: 78px;
   width: auto;
   border-radius: 0;
   object-fit: contain;
