@@ -75,6 +75,13 @@ export function Admin() {
   const [prodDraft, setProdDraft] = useState(blankProduct);
   const [uploading, setUploading] = useState(false);
 
+  function describeError(err) {
+    const code = err?.code ? String(err.code) : "";
+    const message = err?.message ? String(err.message) : "";
+    if (code && message) return `${code}: ${message}`;
+    return code || message || "Error";
+  }
+
   useEffect(() => {
     setStatus({ type: "", message: "" });
   }, [tab]);
@@ -82,10 +89,21 @@ export function Admin() {
   useEffect(() => {
     if (!authed || !isAdmin) return;
 
-    const unsubCats = subscribeCategories(setCategories, () => {});
-    const unsubProds = subscribeProducts(setProducts, () => {});
-    const unsubOrders = subscribeOrders(setOrders, () => {});
-    const unsubLeads = subscribeLeads(setLeads, () => {});
+    const onSubError = (err) => setStatus({ type: "err", message: describeError(err) });
+
+    let unsubCats = () => {};
+    let unsubProds = () => {};
+    let unsubOrders = () => {};
+    let unsubLeads = () => {};
+
+    try {
+      unsubCats = subscribeCategories(setCategories, onSubError);
+      unsubProds = subscribeProducts(setProducts, onSubError);
+      unsubOrders = subscribeOrders(setOrders, onSubError);
+      unsubLeads = subscribeLeads(setLeads, onSubError);
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    }
 
     return () => {
       unsubCats();
@@ -135,8 +153,8 @@ export function Admin() {
       });
       setCatDraft({ slug: "", name: "", tag: "", icon: "chair", order: 0, active: true });
       setStatus({ type: "ok", message: "Categoría guardada" });
-    } catch (_) {
-      setStatus({ type: "err", message: "Error guardando categoría" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
     }
   }
 
@@ -158,8 +176,8 @@ export function Admin() {
     try {
       await deleteCategory(slug);
       setStatus({ type: "ok", message: "Categoría eliminada" });
-    } catch (_) {
-      setStatus({ type: "err", message: "Error eliminando categoría" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
     }
   }
 
@@ -201,8 +219,8 @@ export function Admin() {
       });
       setProdDraft(blankProduct);
       setStatus({ type: "ok", message: "Producto guardado" });
-    } catch (_) {
-      setStatus({ type: "err", message: "Error guardando producto" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
     }
   }
 
@@ -230,8 +248,8 @@ export function Admin() {
     try {
       await deleteProduct(id);
       setStatus({ type: "ok", message: "Producto eliminado" });
-    } catch (_) {
-      setStatus({ type: "err", message: "Error eliminando producto" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
     }
   }
 
@@ -244,8 +262,8 @@ export function Admin() {
       const url = await uploadProductImage({ productId: prodDraft.id, file });
       setProdDraft((p) => ({ ...p, imageUrl: url }));
       setStatus({ type: "ok", message: "Imagen subida" });
-    } catch (_) {
-      setStatus({ type: "err", message: "Error subiendo imagen" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
     } finally {
       setUploading(false);
     }
@@ -254,8 +272,8 @@ export function Admin() {
   async function onChangeOrderStatus(orderId, status) {
     try {
       await updateOrderStatus(orderId, status);
-    } catch (_) {
-      setStatus({ type: "err", message: "Error actualizando pedido" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
     }
   }
 
