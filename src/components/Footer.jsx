@@ -9,7 +9,7 @@ export function Footer() {
         <div className="footer__grid">
           <div>
             <div className="footer__brand">
-              <img src="/assets/picchio-logo.jpg" alt="Picchio" />
+              <img src="/assets/picchio-logo.png" alt="Picchio" />
               <b>PICCHIO</b>
             </div>
             <p className="footer__tag">Somos fabricantes de muebles. Diseño, fabricación propia y entrega a todo el país.</p>

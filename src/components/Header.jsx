@@ -58,7 +58,7 @@ export function Header() {
       <header className="header">
         <div className="container header__inner">
           <Link className="header__logo" to="/">
-            <img className="header__logo-img" src="/assets/picchio-logo.jpg" alt="Picchio" />
+            <img className="header__logo-img" src="/assets/picchio-logo.png" alt="Picchio" />
           </Link>
 
           <nav className="nav">
