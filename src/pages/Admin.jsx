@@ -489,8 +489,8 @@ export function Admin() {
     const cleanEmail = String(email || "").trim().toLowerCase();
     if (!cleanUid && !cleanEmail) return;
     const patch = { updatedAt: serverTimestamp() };
-    if (cleanUid) patch.uids = { [cleanUid]: { email: cleanEmail || null, createdAt: serverTimestamp() } };
-    if (cleanEmail) patch.emails = { [cleanEmail]: true };
+    if (cleanUid) patch[`uids.${cleanUid}`] = { email: cleanEmail || null, createdAt: serverTimestamp() };
+    if (cleanEmail) patch[`emails.${cleanEmail}`] = true;
     await setDoc(doc(db, "site", "admins"), patch, { merge: true });
   }
 
@@ -1231,27 +1231,58 @@ export function Admin() {
                 <div className="admin__panel">
                   <div className="admin__panel-head">
                     <b>Admins habilitados</b>
-                    <span className="muted">{Object.keys((adminsDoc.data?.uids && typeof adminsDoc.data.uids === "object" ? adminsDoc.data.uids : {}) || {}).length}</span>
+                    <span className="muted">
+                      {(() => {
+                        const uids = adminsDoc.data?.uids && typeof adminsDoc.data.uids === "object" ? adminsDoc.data.uids : {};
+                        const emails = adminsDoc.data?.emails && typeof adminsDoc.data.emails === "object" ? adminsDoc.data.emails : {};
+                        const emailOnly = Object.keys(emails).filter((e) => !Object.values(uids).some((x) => String(x?.email || "").toLowerCase() === String(e).toLowerCase()));
+                        return Object.keys(uids).length + emailOnly.length;
+                      })()}
+                    </span>
                   </div>
                   <div className="admin__list">
-                    {Object.entries(adminsDoc.data?.uids && typeof adminsDoc.data.uids === "object" ? adminsDoc.data.uids : {}).map(([uid, info]) => (
-                      <div key={uid} className="admin__row">
-                        <div style={{ display: "flex", flexDirection: "column" }}>
-                          <b style={{ fontSize: 13 }}>{(info && info.email) || uid}</b>
-                          <span className="muted" style={{ fontSize: 12 }}>
-                            {uid}
-                          </span>
+                    {(() => {
+                      const uids = adminsDoc.data?.uids && typeof adminsDoc.data.uids === "object" ? adminsDoc.data.uids : {};
+                      const emails = adminsDoc.data?.emails && typeof adminsDoc.data.emails === "object" ? adminsDoc.data.emails : {};
+                      const usedEmails = new Set(
+                        Object.values(uids)
+                          .map((x) => String(x?.email || "").toLowerCase())
+                          .filter(Boolean),
+                      );
+                      const emailOnly = Object.keys(emails).filter((e) => !usedEmails.has(String(e).toLowerCase()));
+
+                      const rows = [
+                        ...Object.entries(uids).map(([uid, info]) => ({
+                          kind: "uid",
+                          uid,
+                          email: info?.email ? String(info.email) : "",
+                        })),
+                        ...emailOnly.map((email) => ({ kind: "email", uid: "", email: String(email) })),
+                      ];
+
+                      return rows.map((r) => (
+                        <div key={(r.kind === "uid" ? `uid:${r.uid}` : `email:${r.email}`)} className="admin__row">
+                          <div style={{ display: "flex", flexDirection: "column" }}>
+                            <b style={{ fontSize: 13 }}>{r.email || r.uid}</b>
+                            <span className="muted" style={{ fontSize: 12 }}>
+                              {r.uid ? r.uid : "Sin UID (aún no inició sesión)"}
+                            </span>
+                          </div>
+                          <button
+                            className="btn btn--ghost btn--sm"
+                            onClick={() => removeAdmin(r.uid, r.email)}
+                            disabled={!!r.uid && user?.uid === r.uid}
+                          >
+                            Quitar
+                          </button>
                         </div>
-                        <button
-                          className="btn btn--ghost btn--sm"
-                          onClick={() => removeAdmin(uid, info?.email || "")}
-                          disabled={user?.uid === uid}
-                        >
-                          Quitar
-                        </button>
+                      ));
+                    })()}
+                    {Object.keys(adminsDoc.data?.uids || {}).length === 0 && Object.keys(adminsDoc.data?.emails || {}).length === 0 && (
+                      <div style={{ padding: 14 }} className="muted">
+                        Todavía no hay admins en site/admins.
                       </div>
-                    ))}
-                    {Object.keys(adminsDoc.data?.uids || {}).length === 0 && <div style={{ padding: 14 }} className="muted">Todavía no hay admins en site/admins.</div>}
+                    )}
                   </div>
                 </div>
               </div>
