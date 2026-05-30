@@ -161,7 +161,6 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
   const handleAdd = () => {
     const desc = [
       `${ancho} × ${alto} cm`,
-      `+0.25 m²`,
       selectedColor ? `Color ${selectedColor.name}` : null,
       accion === "motor" ? "Motorizada" : chainMetal ? "Cadena metálica" : "Cadena estándar",
       includeInstall ? "Incluye instalación" : "Sin instalación",
@@ -360,7 +359,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
             <div className="cortcalc__row">
               <span>Superficie</span>
               <b>
-                {(areaBase + 0.25).toFixed(2)} m² <small className="muted">({areaBase.toFixed(2)} + 0.25)</small>
+                {area.toFixed(2)} m²
               </b>
             </div>
             <div className="cortcalc__row">
