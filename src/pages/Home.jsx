@@ -63,6 +63,15 @@ export function Home() {
   const { setCotizadorOpen } = useCart();
   const { loading, error, data } = useHomeContent();
   const { featured, categories, projects, testimonials, img } = data;
+  const clsByIndex = ["proj--a", "proj--b", "proj--c", "proj--d", "proj--e"];
+
+  function projectCover(p) {
+    const cover = String(p?.coverUrl || p?.image || p?.imageUrl || "").trim();
+    if (cover) return cover;
+    const media = Array.isArray(p?.media) ? p.media : [];
+    const firstImg = media.find((m) => String(m?.type || "image") === "image" && m?.url);
+    return String(firstImg?.url || media[0]?.url || "").trim();
+  }
 
   if (error) {
     return (
@@ -245,12 +254,12 @@ export function Home() {
           </div>
 
           <div className="projects">
-            {projects.map((p) => (
-              <div className={"proj " + (p.cls || "")} key={p.id}>
-                <div className="proj__media" style={{ backgroundImage: `url(${p.image})` }} />
+            {(projects || []).filter((p) => p?.active !== false).map((p, idx) => (
+              <div className={"proj " + (p.cls || clsByIndex[idx % clsByIndex.length])} key={p.id}>
+                <div className="proj__media" style={{ backgroundImage: `url(${projectCover(p)})` }} />
                 <div className="proj__caption">
-                  <span>{p.title}</span>
-                  <span style={{ opacity: 0.85, fontWeight: 500 }}>{p.tag}</span>
+                  <span>{p.title || "Proyecto"}</span>
+                  <span style={{ opacity: 0.85, fontWeight: 500 }}>{p.tag || ""}</span>
                 </div>
               </div>
             ))}
