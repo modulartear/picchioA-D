@@ -258,7 +258,7 @@ export function Home() {
               const list = (projects || []).filter((p) => p?.active !== false);
               if (list.length === 0) return <div className="muted">Todavía no hay proyectos publicados.</div>;
               return list.map((p, idx) => (
-                <div className={"proj " + (p.cls || clsByIndex[idx % clsByIndex.length])} key={p.id}>
+                <div className={"proj " + (p.cls || clsByIndex[idx % clsByIndex.length])} key={p.id} onClick={() => nav("/project/" + p.id)}>
                   <div className="proj__media" style={{ backgroundImage: `url(${projectCover(p)})` }} />
                   <div className="proj__caption">
                     <span>{p.title || "Proyecto"}</span>

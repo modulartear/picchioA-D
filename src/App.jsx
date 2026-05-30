@@ -14,6 +14,7 @@ import { Admin } from "./pages/Admin";
 import { Category } from "./pages/Category";
 import { Checkout } from "./pages/Checkout";
 import { Home } from "./pages/Home";
+import { Project } from "./pages/Project";
 import { Product } from "./pages/Product";
 
 function Shell() {
@@ -55,6 +56,7 @@ function Shell() {
           <Route path="/" element={<Home />} />
           <Route path="/cat/:slug" element={<Category />} />
           <Route path="/product/:id" element={<Product />} />
+          <Route path="/project/:id" element={<Project />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/admin/*" element={<Admin />} />
           <Route path="*" element={<Navigate to="/" replace />} />

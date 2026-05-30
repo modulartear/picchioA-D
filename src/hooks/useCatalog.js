@@ -3,6 +3,7 @@ import {
   DEFAULT_CHECKOUT,
   fetchCategories,
   fetchFeaturedProducts,
+  fetchProjectById,
   fetchProductById,
   fetchProducts,
   fetchProductsByCategory,
@@ -109,6 +110,30 @@ export function useProduct(id) {
     if (!id) return;
     setState((s) => ({ ...s, loading: true }));
     fetchProductById(id)
+      .then((data) => {
+        if (!alive) return;
+        setState({ loading: false, data, error: "" });
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setState({ loading: false, data: null, error: describeError(e) });
+      });
+    return () => {
+      alive = false;
+    };
+  }, [id]);
+
+  return state;
+}
+
+export function useProject(id) {
+  const [state, setState] = useState({ loading: true, data: null, error: "" });
+
+  useEffect(() => {
+    let alive = true;
+    if (!id) return;
+    setState((s) => ({ ...s, loading: true }));
+    fetchProjectById(id)
       .then((data) => {
         if (!alive) return;
         setState({ loading: false, data, error: "" });

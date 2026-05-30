@@ -148,6 +148,13 @@ export async function fetchProjects() {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+export async function fetchProjectById(id) {
+  assertConfigured();
+  const snap = await getDoc(doc(db, "projects", id));
+  if (!snap.exists()) return null;
+  return { id: snap.id, ...snap.data() };
+}
+
 export async function fetchTestimonials() {
   assertConfigured();
   const q = query(collection(db, "testimonials"));

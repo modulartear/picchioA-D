@@ -457,6 +457,55 @@ input, select, textarea { font: inherit; color: inherit; }
   .proj { grid-column: span 1 !important; aspect-ratio: 1/1 !important; }
 }
 
+/* ============= Project detail ============= */
+.project-detail__title {
+  font-size: 44px;
+  line-height: 1.05;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.project-detail__tag {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.project-detail__details {
+  margin-top: 18px;
+  color: var(--ink-2);
+  font-size: 16px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.project-media {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.project-media__item {
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.project-media__item img,
+.project-media__item video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.project-media__item video {
+  min-height: 320px;
+}
+@media (max-width: 760px) {
+  .project-detail__title { font-size: 34px; }
+  .project-media { grid-template-columns: 1fr; }
+  .project-media__item video { min-height: 240px; }
+}
+
 /* ============= Testimonials ============= */
 .quotes {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px;
