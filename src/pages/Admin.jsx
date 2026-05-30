@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { deleteField, doc, onSnapshot, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { arrayRemove, arrayUnion, deleteField, doc, onSnapshot, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db, firebaseConfigured } from "../firebase";
@@ -49,10 +49,12 @@ export function Admin() {
     if (envAdminUid && user.uid === envAdminUid) return true;
     const d = adminsDoc.data || {};
     const uids = d?.uids && typeof d.uids === "object" ? d.uids : {};
-    const emails = d?.emails && typeof d.emails === "object" ? d.emails : {};
+    const emailsMap = d?.emails && typeof d.emails === "object" ? d.emails : {};
+    const emailsListRaw = Array.isArray(d?.emailsList) ? d.emailsList : [];
     const email = user.email ? String(user.email).toLowerCase() : "";
     if (uids && user.uid && uids[String(user.uid)]) return true;
-    if (emails && email && emails[email]) return true;
+    if (emailsMap && email && emailsMap[email]) return true;
+    if (email && emailsListRaw.some((e) => String(e || "").toLowerCase() === email)) return true;
     return false;
   }, [adminsDoc.data, envAdminUid, user]);
 
@@ -501,8 +503,8 @@ export function Admin() {
     const cleanEmail = String(email || "").trim().toLowerCase();
     if (!cleanUid && !cleanEmail) return;
     const patch = { updatedAt: serverTimestamp() };
-    if (cleanUid) patch[`uids.${cleanUid}`] = { email: cleanEmail || null, createdAt: serverTimestamp() };
-    if (cleanEmail) patch[`emails.${cleanEmail}`] = true;
+    if (cleanUid) patch.uids = { [cleanUid]: { email: cleanEmail || null, createdAt: serverTimestamp() } };
+    if (cleanEmail) patch.emailsList = arrayUnion(cleanEmail);
     await setDoc(doc(db, "site", "admins"), patch, { merge: true });
   }
 
@@ -512,7 +514,7 @@ export function Admin() {
     const cleanEmail = String(email || "").trim().toLowerCase();
     const patch = { updatedAt: serverTimestamp() };
     if (cleanUid) patch[`uids.${cleanUid}`] = deleteField();
-    if (cleanEmail) patch[`emails.${cleanEmail}`] = deleteField();
+    if (cleanEmail) patch.emailsList = arrayRemove(cleanEmail);
     await updateDoc(doc(db, "site", "admins"), patch);
   }
 
@@ -1246,8 +1248,8 @@ export function Admin() {
                     <span className="muted">
                       {(() => {
                         const uids = adminsDoc.data?.uids && typeof adminsDoc.data.uids === "object" ? adminsDoc.data.uids : {};
-                        const emails = adminsDoc.data?.emails && typeof adminsDoc.data.emails === "object" ? adminsDoc.data.emails : {};
-                        const emailOnly = Object.keys(emails).filter((e) => !Object.values(uids).some((x) => String(x?.email || "").toLowerCase() === String(e).toLowerCase()));
+                        const emails = Array.isArray(adminsDoc.data?.emailsList) ? adminsDoc.data.emailsList : [];
+                        const emailOnly = emails.filter((e) => !Object.values(uids).some((x) => String(x?.email || "").toLowerCase() === String(e || "").toLowerCase()));
                         return Object.keys(uids).length + emailOnly.length;
                       })()}
                     </span>
@@ -1255,13 +1257,13 @@ export function Admin() {
                   <div className="admin__list">
                     {(() => {
                       const uids = adminsDoc.data?.uids && typeof adminsDoc.data.uids === "object" ? adminsDoc.data.uids : {};
-                      const emails = adminsDoc.data?.emails && typeof adminsDoc.data.emails === "object" ? adminsDoc.data.emails : {};
+                      const emails = Array.isArray(adminsDoc.data?.emailsList) ? adminsDoc.data.emailsList : [];
                       const usedEmails = new Set(
                         Object.values(uids)
                           .map((x) => String(x?.email || "").toLowerCase())
                           .filter(Boolean),
                       );
-                      const emailOnly = Object.keys(emails).filter((e) => !usedEmails.has(String(e).toLowerCase()));
+                      const emailOnly = emails.map((e) => String(e || "")).filter((e) => e && !usedEmails.has(e.toLowerCase()));
 
                       const rows = [
                         ...Object.entries(uids).map(([uid, info]) => ({
@@ -1290,7 +1292,7 @@ export function Admin() {
                         </div>
                       ));
                     })()}
-                    {Object.keys(adminsDoc.data?.uids || {}).length === 0 && Object.keys(adminsDoc.data?.emails || {}).length === 0 && (
+                    {Object.keys(adminsDoc.data?.uids || {}).length === 0 && (!Array.isArray(adminsDoc.data?.emailsList) || adminsDoc.data.emailsList.length === 0) && (
                       <div style={{ padding: 14 }} className="muted">
                         Todavía no hay admins en site/admins.
                       </div>
