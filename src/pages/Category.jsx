@@ -111,6 +111,106 @@ export function Category() {
     );
   }
 
+  if (slug === "productos") {
+    return (
+      <div className="fade-in">
+        <div className="cat-hero">
+          <div className="container">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <nav className="crumbs">
+                <a
+                  href="/"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    nav("/");
+                  }}
+                >
+                  Inicio
+                </a>
+                <span className="sep">/</span>
+                <span>Productos</span>
+              </nav>
+              <button
+                className="btn btn--ghost btn--sm"
+                onClick={async () => {
+                  try {
+                    const url = window.location.href;
+                    if (navigator.share) {
+                      await navigator.share({ title: "Picchio · Productos", url });
+                      return;
+                    }
+                    if (navigator.clipboard?.writeText) {
+                      await navigator.clipboard.writeText(url);
+                      showToast("Link copiado");
+                      return;
+                    }
+                    showToast(url);
+                  } catch (_) {
+                    showToast("No se pudo compartir");
+                  }
+                }}
+              >
+                Compartir
+              </button>
+            </div>
+            <h1>Productos</h1>
+            <p>Todos los productos disponibles.</p>
+          </div>
+        </div>
+
+        <div className="cat-toolbar">
+          <div className="container" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <div className="chips">
+              {["all", "Stock inmediato", "A medida", "Nuevos", "Más vendidos"].map((c) => (
+                <button key={c} className={"chip" + (activeChip === c ? " active" : "")} onClick={() => setActiveChip(c)}>
+                  {c === "all" ? "Todos" : c}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}>
+              <span className="muted">
+                {sorted.length} producto{sorted.length !== 1 ? "s" : ""}
+              </span>
+              <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ border: "1px solid var(--line-strong)", padding: "8px 12px", borderRadius: 999, background: "transparent", fontSize: 13, fontWeight: 500 }}>
+                <option value="featured">Destacados</option>
+                <option value="new">Novedades</option>
+                <option value="name">Nombre A-Z</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <section className="section">
+          <div className="container">
+            {sorted.length > 0 ? (
+              <div className="product-grid">
+                {sorted.map((p) => (
+                  <ProductCard key={p.id} product={p} />
+                ))}
+              </div>
+            ) : (
+              <div style={{ textAlign: "center", padding: 80, color: "var(--muted)" }}>
+                No hay productos publicados todavía.
+                <br />
+                <a
+                  href="/"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    nav("/");
+                  }}
+                  className="link-arrow"
+                  style={{ marginTop: 14, display: "inline-flex" }}
+                >
+                  Volver a inicio
+                </a>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   if (!cat) return <div className="container" style={{ padding: 100 }}>Categoría no encontrada</div>;
 
   async function onShare() {

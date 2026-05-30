@@ -112,6 +112,13 @@ export async function fetchCategories() {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
+export async function fetchProducts() {
+  assertConfigured();
+  const q = query(collection(db, "products"), orderBy("updatedAt", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 export async function fetchProductsByCategory(slug) {
   assertConfigured();
   const q = query(collection(db, "products"), where("cat", "==", slug));

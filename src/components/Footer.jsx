@@ -31,6 +31,17 @@ export function Footer() {
               </li>
               <li>
                 <a
+                  href="/#cortinas-calc"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    nav("/#cortinas-calc");
+                  }}
+                >
+                  Cortinas
+                </a>
+              </li>
+              <li>
+                <a
                   href="/cat/sillas"
                   onClick={(e) => {
                     e.preventDefault();

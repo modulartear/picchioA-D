@@ -35,8 +35,9 @@ export function Header() {
 
   const navItems = useMemo(
     () => [
-      { label: "Productos", path: "/cat/sillas" },
+      { label: "Productos", path: "/cat/productos" },
       { label: "A medida", path: "/cat/a-medida" },
+      { label: "Cortinas", path: "/#cortinas-calc" },
       { label: "Proyectos", path: "/#proyectos" },
       { label: "Nosotros", path: "/#nosotros" },
       { label: "Contacto", path: "/#contacto" },
@@ -67,7 +68,7 @@ export function Header() {
               const href = isAnchor ? n.path : n.path;
               const active = (() => {
                 if (isAnchor) return loc.pathname === "/";
-                if (n.path === "/cat/sillas") return loc.pathname.startsWith("/cat/") && !loc.pathname.startsWith("/cat/a-medida");
+                if (n.path === "/cat/productos") return loc.pathname.startsWith("/cat/") && !loc.pathname.startsWith("/cat/a-medida");
                 return loc.pathname === n.path || loc.pathname.startsWith(n.path + "/");
               })();
 

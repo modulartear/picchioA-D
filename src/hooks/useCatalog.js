@@ -4,6 +4,7 @@ import {
   fetchCategories,
   fetchFeaturedProducts,
   fetchProductById,
+  fetchProducts,
   fetchProductsByCategory,
   fetchProjects,
   fetchSiteContent,
@@ -68,6 +69,21 @@ export function useProductsByCategory(slug) {
     let alive = true;
     if (!slug) return;
     setState((s) => ({ ...s, loading: true }));
+    if (slug === "productos") {
+      fetchProducts()
+        .then((data) => {
+          if (!alive) return;
+          setState({ loading: false, data, error: "" });
+        })
+        .catch((e) => {
+          if (!alive) return;
+          setState({ loading: false, data: [], error: describeError(e) });
+        });
+      return () => {
+        alive = false;
+      };
+    }
+
     fetchProductsByCategory(slug)
       .then((data) => {
         if (!alive) return;
