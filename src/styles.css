@@ -393,10 +393,12 @@ input, select, textarea { font: inherit; color: inherit; }
   border-bottom: 1px solid var(--line);
 }
 .split__media {
-  aspect-ratio: 4/5;
-  background-size: cover; background-position: center;
+  aspect-ratio: 1/1;
+  background-size: clamp(240px, 40vw, 500px) auto;
+  background-position: center;
+  background-repeat: no-repeat;
   background-color: var(--surface-2);
-  min-height: 540px;
+  min-height: 420px;
 }
 .split__body {
   padding: 80px 64px;
@@ -420,7 +422,7 @@ input, select, textarea { font: inherit; color: inherit; }
 @media (max-width: 960px) {
   .split { grid-template-columns: 1fr; }
   .split__body { padding: 48px 24px; }
-  .split__media { min-height: 360px; }
+  .split__media { min-height: 320px; }
 }
 
 /* ============= Projects masonry ============= */
