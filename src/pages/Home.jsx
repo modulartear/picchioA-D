@@ -97,7 +97,7 @@ export function Home() {
       <section className="hero">
         <div className="hero__media" style={{ backgroundImage: `url(${img.heroLiving})` }} />
         <div className="container hero__meta">
-          <span>Venado Tuerto · Fab. desde hace 25 años</span>
+          <span>Venado Tuerto · Fab. desde hace 10 años</span>
           <span>Colección 2026</span>
         </div>
         <div className="container hero__content">
@@ -286,7 +286,7 @@ export function Home() {
             </p>
             <div className="about__stats">
               <div>
-                <div className="about__stat-num">25</div>
+                <div className="about__stat-num">10</div>
                 <div className="about__stat-label">años fabricando</div>
               </div>
               <div>
