@@ -126,16 +126,10 @@ export function Admin() {
   const [cortinasDraft, setCortinasDraft] = useState(blankCortinas);
   const [cortinasSaving, setCortinasSaving] = useState(false);
   const [cortinasUploading, setCortinasUploading] = useState("");
-  const [cortinasNew, setCortinasNew] = useState({
-    name: "",
-    tag: "",
-    pricePerM2: "",
-    apertureEnabled: false,
-    active: true,
-    imageUrl: "",
-  });
   const [cortinasColorUploading, setCortinasColorUploading] = useState("");
-  const [cortinasNewColor, setCortinasNewColor] = useState({ name: "", active: true, imageUrl: "" });
+  const [cortinasSubtab, setCortinasSubtab] = useState("telas");
+  const [selectedFabricId, setSelectedFabricId] = useState("");
+  const [selectedColorId, setSelectedColorId] = useState("");
 
   const defaultEnvioText = "Envío gratis en Venado Tuerto. Envío a todo el país coordinado por transporte propio o flete.";
   const defaultGarantiaText = "Garantía Picchio: 1 año en tapicería, 2 años en estructura y 5 años en herrajes.";
@@ -254,9 +248,24 @@ export function Admin() {
     };
 
     setCortinasDraft({ fabrics, pricing, colors });
-    setCortinasNew({ name: "", tag: "", pricePerM2: "", apertureEnabled: false, active: true, imageUrl: "" });
-    setCortinasNewColor({ name: "", active: true, imageUrl: "" });
+    setCortinasSubtab("telas");
+    setSelectedFabricId(String((fabrics[0] && fabrics[0].id) || ""));
+    setSelectedColorId(String((colors[0] && colors[0].id) || ""));
   }, [tab, categories, blankCortinas]);
+
+  useEffect(() => {
+    if (tab !== "cortinas") return;
+    const first = (Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : [])[0];
+    if (selectedFabricId && (Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : []).some((f) => f.id === selectedFabricId)) return;
+    setSelectedFabricId(String(first?.id || ""));
+  }, [tab, cortinasDraft.fabrics, selectedFabricId]);
+
+  useEffect(() => {
+    if (tab !== "cortinas") return;
+    const first = (Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : [])[0];
+    if (selectedColorId && (Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : []).some((c) => c.id === selectedColorId)) return;
+    setSelectedColorId(String(first?.id || ""));
+  }, [tab, cortinasDraft.colors, selectedColorId]);
 
   useEffect(() => {
     if (authed && !isAdmin && !loading) {
@@ -329,6 +338,33 @@ export function Admin() {
     });
   }
 
+  function createCortinasFabric() {
+    const id = makeId("fabric");
+    const next = {
+      id,
+      name: "Nueva tela",
+      tag: "",
+      pricePerM2: 0,
+      apertureEnabled: false,
+      active: true,
+      imageUrl: "",
+      colorIds: [],
+    };
+    setCortinasDraft((p) => ({ ...p, fabrics: [next, ...(Array.isArray(p.fabrics) ? p.fabrics : [])] }));
+    setSelectedFabricId(id);
+    setCortinasSubtab("telas");
+    setStatus({ type: "ok", message: "Tela creada (completá los datos y guardá)" });
+  }
+
+  function createCortinasColor() {
+    const id = makeId("color");
+    const next = { id, name: "Nuevo color", imageUrl: "", active: true };
+    setCortinasDraft((p) => ({ ...p, colors: [next, ...(Array.isArray(p.colors) ? p.colors : [])] }));
+    setSelectedColorId(id);
+    setCortinasSubtab("colores");
+    setStatus({ type: "ok", message: "Color creado (completá los datos y guardá)" });
+  }
+
   async function onUploadCortinasFabricImage(fabricId, file) {
     if (!file) return;
     setStatus({ type: "", message: "" });
@@ -357,65 +393,6 @@ export function Admin() {
     } finally {
       setCortinasColorUploading("");
     }
-  }
-
-  async function onUploadCortinasNewImage(file) {
-    if (!file) return;
-    setStatus({ type: "", message: "" });
-    setCortinasUploading("new");
-    try {
-      const url = await uploadCortinasFabricImage({ fabricId: makeId("fabric"), file });
-      setCortinasNew((p) => ({ ...p, imageUrl: url }));
-      setStatus({ type: "ok", message: "Imagen de tela subida" });
-    } catch (err) {
-      setStatus({ type: "err", message: describeError(err) });
-    } finally {
-      setCortinasUploading("");
-    }
-  }
-
-  async function onUploadCortinasNewColorImage(file) {
-    if (!file) return;
-    setStatus({ type: "", message: "" });
-    setCortinasColorUploading("new");
-    try {
-      const url = await uploadCortinasColorImage({ colorId: makeId("color"), file });
-      setCortinasNewColor((p) => ({ ...p, imageUrl: url }));
-      setStatus({ type: "ok", message: "Imagen de color subida" });
-    } catch (err) {
-      setStatus({ type: "err", message: describeError(err) });
-    } finally {
-      setCortinasColorUploading("");
-    }
-  }
-
-  function addCortinasFabric() {
-    const name = String(cortinasNew.name || "").trim();
-    if (!name) return setStatus({ type: "err", message: "Tela: falta el nombre" });
-    const id = makeId("fabric");
-    const next = {
-      id,
-      name,
-      tag: String(cortinasNew.tag || "").trim(),
-      pricePerM2: toNumber(cortinasNew.pricePerM2),
-      apertureEnabled: !!cortinasNew.apertureEnabled,
-      active: cortinasNew.active !== false,
-      imageUrl: String(cortinasNew.imageUrl || ""),
-      colorIds: [],
-    };
-    setCortinasDraft((p) => ({ ...p, fabrics: [next, ...(Array.isArray(p.fabrics) ? p.fabrics : [])] }));
-    setCortinasNew({ name: "", tag: "", pricePerM2: "", apertureEnabled: false, active: true, imageUrl: "" });
-    setStatus({ type: "ok", message: "Tela agregada (guardá para aplicar)" });
-  }
-
-  function addCortinasColor() {
-    const name = String(cortinasNewColor.name || "").trim();
-    if (!name) return setStatus({ type: "err", message: "Color: falta el nombre" });
-    const id = makeId("color");
-    const next = { id, name, imageUrl: String(cortinasNewColor.imageUrl || ""), active: cortinasNewColor.active !== false };
-    setCortinasDraft((p) => ({ ...p, colors: [next, ...(Array.isArray(p.colors) ? p.colors : [])] }));
-    setCortinasNewColor({ name: "", active: true, imageUrl: "" });
-    setStatus({ type: "ok", message: "Color agregado (guardá para aplicar)" });
   }
 
   async function onSaveCortinasConfig() {
@@ -1169,25 +1146,41 @@ export function Admin() {
         )}
 
         {tab === "cortinas" && (
-          <div className="admin__grid" style={{ marginTop: 16 }}>
+          <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
             <div className="admin__panel">
               <div className="admin__panel-head">
-                <b>Cortinas · Configuración</b>
-                <span className="muted">{(Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : []).length} telas</span>
+                <b>Cortinas</b>
+                <span className="muted">
+                  {(Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : []).length} telas · {(Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : []).length} colores
+                </span>
               </div>
-              <div style={{ padding: 14, display: "grid", gap: 14 }}>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                  <button className="btn btn--accent btn--sm" onClick={onSaveCortinasConfig} disabled={cortinasSaving}>
-                    {cortinasSaving ? "Guardando..." : "Guardar"}
+              <div style={{ padding: 14, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                <button className="btn btn--accent btn--sm" onClick={onSaveCortinasConfig} disabled={cortinasSaving}>
+                  {cortinasSaving ? "Guardando..." : "Guardar"}
+                </button>
+                {[
+                  { k: "telas", l: "Telas" },
+                  { k: "colores", l: "Colores" },
+                  { k: "config", l: "Configuración" },
+                ].map((st) => (
+                  <button key={st.k} type="button" className={"chip" + (cortinasSubtab === st.k ? " active" : "")} onClick={() => setCortinasSubtab(st.k)}>
+                    {st.l}
                   </button>
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    Se guarda en categories/cortinas → cortinasConfig
-                  </span>
-                </div>
+                ))}
+                <span className="muted" style={{ fontSize: 12 }}>
+                  categories/cortinas → cortinasConfig
+                </span>
+              </div>
+            </div>
 
-                <div style={{ border: "1px solid var(--line-strong)", borderRadius: 12, padding: 12, background: "var(--bg)" }}>
-                  <b>Precios adicionales</b>
-                  <div className="field-grid" style={{ marginTop: 12 }}>
+            {cortinasSubtab === "config" && (
+              <div className="admin__panel">
+                <div className="admin__panel-head">
+                  <b>Configuración</b>
+                  <span className="muted">Precios adicionales</span>
+                </div>
+                <div style={{ padding: 14 }}>
+                  <div className="field-grid">
                     <Field label="Precio instalación">
                       <input type="number" value={cortinasDraft.pricing.installPrice} onChange={(e) => updateCortinasPricing({ installPrice: toNumber(e.target.value) })} />
                     </Field>
@@ -1208,234 +1201,242 @@ export function Admin() {
                     </Field>
                   </div>
                 </div>
+              </div>
+            )}
 
-                <div style={{ border: "1px solid var(--line-strong)", borderRadius: 12, padding: 12, background: "var(--bg)" }}>
-                  <b>Catálogo de colores</b>
-                  <div className="admin__list" style={{ marginTop: 12 }}>
-                    {(Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : []).map((c) => (
-                      <div key={c.id} className="admin__row" style={{ alignItems: "flex-start" }}>
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flex: 1 }}>
-                          <div className="admin__thumb" style={{ backgroundImage: `url(${c.imageUrl || ""})` }} />
-                          <div style={{ display: "grid", gap: 10, width: "100%" }}>
-                            <div className="field-grid">
-                              <Field label="Nombre">
-                                <input value={c.name || ""} onChange={(e) => updateCortinasColor(c.id, { name: e.target.value })} />
-                              </Field>
-                              <Field label="Activo">
-                                <select value={c.active !== false ? "1" : "0"} onChange={(e) => updateCortinasColor(c.id, { active: e.target.value === "1" })}>
-                                  <option value="1">Sí</option>
-                                  <option value="0">No</option>
-                                </select>
-                              </Field>
-                            </div>
-                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                              <label className="btn btn--ghost btn--sm" style={{ cursor: "pointer", justifyContent: "center" }}>
-                                {cortinasColorUploading === c.id ? "Subiendo..." : "Subir imagen"}
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  style={{ display: "none" }}
-                                  disabled={cortinasColorUploading === c.id}
-                                  onChange={(e) => onUploadCortinasColorImage(c.id, e.target.files?.[0])}
-                                />
-                              </label>
-                              <button type="button" className="btn btn--ghost btn--sm" onClick={() => removeCortinasColor(c.id)}>
-                                Eliminar
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {(Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : []).length === 0 && <div className="muted">Sin colores cargados.</div>}
-                  </div>
-
-                  <div style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 12 }}>
-                    <b>Nuevo color</b>
-                    <div className="field-grid" style={{ marginTop: 12 }}>
-                      <Field label="Nombre">
-                        <input value={cortinasNewColor.name} onChange={(e) => setCortinasNewColor((p) => ({ ...p, name: e.target.value }))} placeholder="Ej: Gris perla" />
-                      </Field>
-                      <Field label="Activo">
-                        <select value={cortinasNewColor.active ? "1" : "0"} onChange={(e) => setCortinasNewColor((p) => ({ ...p, active: e.target.value === "1" }))}>
-                          <option value="1">Sí</option>
-                          <option value="0">No</option>
-                        </select>
-                      </Field>
-                      <div style={{ display: "grid", gap: 8 }}>
-                        <span className="muted" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
-                          Imagen
-                        </span>
-                        <label className="btn btn--ghost btn--sm" style={{ cursor: "pointer", justifyContent: "center" }}>
-                          {cortinasColorUploading === "new" ? "Subiendo..." : "Subir imagen"}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            style={{ display: "none" }}
-                            disabled={cortinasColorUploading === "new"}
-                            onChange={(e) => onUploadCortinasNewColorImage(e.target.files?.[0])}
-                          />
-                        </label>
-                        {cortinasNewColor.imageUrl ? (
-                          <div className="admin__thumb" style={{ width: 120, height: 80, backgroundImage: `url(${cortinasNewColor.imageUrl})` }} />
-                        ) : (
-                          <span className="muted" style={{ fontSize: 12 }}>
-                            (opcional)
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-                      <button type="button" className="btn btn--ghost btn--sm" onClick={addCortinasColor}>
-                        + Agregar color
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ border: "1px solid var(--line-strong)", borderRadius: 12, padding: 12, background: "var(--bg)" }}>
-                  <b>Nueva tela</b>
-                  <div className="field-grid" style={{ marginTop: 12 }}>
-                    <Field label="Nombre">
-                      <input value={cortinasNew.name} onChange={(e) => setCortinasNew((p) => ({ ...p, name: e.target.value }))} placeholder="Ej: Sun Screen" />
-                    </Field>
-                    <Field label="Tag">
-                      <input value={cortinasNew.tag} onChange={(e) => setCortinasNew((p) => ({ ...p, tag: e.target.value }))} placeholder="Ej: Filtro UV" />
-                    </Field>
-                    <Field label="Precio / m²">
-                      <input value={cortinasNew.pricePerM2} inputMode="numeric" onChange={(e) => setCortinasNew((p) => ({ ...p, pricePerM2: e.target.value }))} placeholder="32000" />
-                    </Field>
-                    <Field label="Apertura">
-                      <select value={cortinasNew.apertureEnabled ? "1" : "0"} onChange={(e) => setCortinasNew((p) => ({ ...p, apertureEnabled: e.target.value === "1" }))}>
-                        <option value="0">No</option>
-                        <option value="1">Sí</option>
-                      </select>
-                    </Field>
-                    <Field label="Activa">
-                      <select value={cortinasNew.active ? "1" : "0"} onChange={(e) => setCortinasNew((p) => ({ ...p, active: e.target.value === "1" }))}>
-                        <option value="1">Sí</option>
-                        <option value="0">No</option>
-                      </select>
-                    </Field>
-                    <div style={{ display: "grid", gap: 8 }}>
-                      <span className="muted" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
-                        Imagen
-                      </span>
-                      <label className="btn btn--ghost btn--sm" style={{ cursor: "pointer", justifyContent: "center" }}>
-                        {cortinasUploading === "new" ? "Subiendo..." : "Subir imagen"}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          style={{ display: "none" }}
-                          disabled={cortinasUploading === "new"}
-                          onChange={(e) => onUploadCortinasNewImage(e.target.files?.[0])}
-                        />
-                      </label>
-                      {cortinasNew.imageUrl ? (
-                        <div className="admin__thumb" style={{ width: 120, height: 80, backgroundImage: `url(${cortinasNew.imageUrl})` }} />
-                      ) : (
-                        <span className="muted" style={{ fontSize: 12 }}>
-                          (opcional)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
-                    <button type="button" className="btn btn--ghost btn--sm" onClick={addCortinasFabric}>
-                      + Agregar tela
+            {cortinasSubtab === "telas" && (
+              <div className="admin__grid">
+                <div className="admin__panel">
+                  <div className="admin__panel-head">
+                    <b>Telas</b>
+                    <button type="button" className="btn btn--ghost btn--sm" onClick={createCortinasFabric}>
+                      + Nueva tela
                     </button>
                   </div>
+                  <div className="admin__list">
+                    {(Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : []).map((f) => {
+                      const active = f.id === selectedFabricId;
+                      return (
+                        <div
+                          key={f.id}
+                          className="admin__row"
+                          onClick={() => setSelectedFabricId(f.id)}
+                          style={{
+                            cursor: "pointer",
+                            background: active ? "var(--accent-soft)" : "transparent",
+                            borderColor: active ? "var(--line-strong)" : undefined,
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div className="admin__thumb" style={{ width: 42, height: 42, backgroundImage: `url(${f.imageUrl || ""})` }} />
+                            <div style={{ display: "flex", flexDirection: "column" }}>
+                              <b>{f.name || "Sin nombre"}</b>
+                              <span className="muted" style={{ fontSize: 12 }}>
+                                {toNumber(f.pricePerM2) > 0 ? `$${toNumber(f.pricePerM2).toLocaleString("es-AR")}/m²` : "Sin precio"} {f.active === false ? "· inactiva" : ""}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {(Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : []).length === 0 && <div style={{ padding: 14 }} className="muted">Sin telas.</div>}
+                  </div>
+                </div>
+
+                <div className="admin__panel">
+                  <div className="admin__panel-head">
+                    <b>Editar tela</b>
+                    <span className="muted">{selectedFabricId || ""}</span>
+                  </div>
+                  <div style={{ padding: 14 }}>
+                    {(() => {
+                      const f = (Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : []).find((x) => x.id === selectedFabricId);
+                      if (!f) return <div className="muted">Seleccioná una tela de la lista.</div>;
+                      const allColors = Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : [];
+                      const selectedIds = Array.isArray(f.colorIds) ? f.colorIds : [];
+                      return (
+                        <div style={{ display: "grid", gap: 12 }}>
+                          <div className="field-grid">
+                            <Field label="Nombre">
+                              <input value={f.name || ""} onChange={(e) => updateCortinasFabric(f.id, { name: e.target.value })} />
+                            </Field>
+                            <Field label="Precio / m²">
+                              <input type="number" value={toNumber(f.pricePerM2)} onChange={(e) => updateCortinasFabric(f.id, { pricePerM2: toNumber(e.target.value) })} />
+                            </Field>
+                          </div>
+                          <Field label="Tag">
+                            <input value={f.tag || ""} onChange={(e) => updateCortinasFabric(f.id, { tag: e.target.value })} />
+                          </Field>
+                          <div className="field-grid">
+                            <Field label="Apertura">
+                              <select value={f.apertureEnabled ? "1" : "0"} onChange={(e) => updateCortinasFabric(f.id, { apertureEnabled: e.target.value === "1" })}>
+                                <option value="0">No</option>
+                                <option value="1">Sí</option>
+                              </select>
+                            </Field>
+                            <Field label="Activa">
+                              <select value={f.active !== false ? "1" : "0"} onChange={(e) => updateCortinasFabric(f.id, { active: e.target.value === "1" })}>
+                                <option value="1">Sí</option>
+                                <option value="0">No</option>
+                              </select>
+                            </Field>
+                          </div>
+
+                          <Field label="Imagen">
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                              <div className="admin__thumb" style={{ width: 72, height: 56, backgroundImage: `url(${f.imageUrl || ""})` }} />
+                              <label className="btn btn--ghost btn--sm" style={{ cursor: "pointer", justifyContent: "center" }}>
+                                {cortinasUploading === f.id ? "Subiendo..." : "Subir imagen"}
+                                <input type="file" accept="image/*" style={{ display: "none" }} disabled={cortinasUploading === f.id} onChange={(e) => onUploadCortinasFabricImage(f.id, e.target.files?.[0])} />
+                              </label>
+                            </div>
+                          </Field>
+
+                          <Field label="Colores (solo los que aplican a esta tela)">
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              {allColors.map((c) => {
+                                const isSelected = selectedIds.includes(c.id);
+                                return (
+                                  <button
+                                    key={c.id}
+                                    type="button"
+                                    className={"btn btn--ghost btn--sm" + (isSelected ? " chip active" : "")}
+                                    onClick={() => toggleCortinasFabricColor(f.id, c.id)}
+                                    style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+                                  >
+                                    <span
+                                      style={{
+                                        width: 14,
+                                        height: 14,
+                                        borderRadius: 999,
+                                        backgroundImage: c.imageUrl ? `url(${c.imageUrl})` : "none",
+                                        backgroundSize: "cover",
+                                        backgroundPosition: "center",
+                                        border: "1px solid var(--line)",
+                                        backgroundColor: "var(--surface-2)",
+                                      }}
+                                    />
+                                    {c.name}
+                                  </button>
+                                );
+                              })}
+                              {allColors.length === 0 && (
+                                <span className="muted">
+                                  Primero cargá colores en la pestaña “Colores”.
+                                </span>
+                              )}
+                            </div>
+                          </Field>
+
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <button
+                              type="button"
+                              className="btn btn--ghost btn--sm"
+                              onClick={() => {
+                                if (!confirm("¿Eliminar tela?")) return;
+                                removeCortinasFabric(f.id);
+                              }}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="admin__panel">
-              <div className="admin__panel-head">
-                <b>Telas</b>
-                <span className="muted">{(Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : []).length}</span>
-              </div>
-              <div className="admin__list">
-                {(Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : []).map((f) => (
-                  <div key={f.id} className="admin__row" style={{ alignItems: "flex-start" }}>
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flex: 1 }}>
-                      <div className="admin__thumb" style={{ backgroundImage: `url(${f.imageUrl || ""})` }} />
-                      <div style={{ display: "grid", gap: 10, width: "100%" }}>
-                        <div className="field-grid">
-                          <Field label="Nombre">
-                            <input value={f.name || ""} onChange={(e) => updateCortinasFabric(f.id, { name: e.target.value })} />
-                          </Field>
-                          <Field label="Precio / m²">
-                            <input type="number" value={toNumber(f.pricePerM2)} onChange={(e) => updateCortinasFabric(f.id, { pricePerM2: toNumber(e.target.value) })} />
-                          </Field>
-                        </div>
-                        <Field label="Tag">
-                          <input value={f.tag || ""} onChange={(e) => updateCortinasFabric(f.id, { tag: e.target.value })} />
-                        </Field>
-                        <Field label="Colores">
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            {(Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : []).map((c) => {
-                              const selected = (Array.isArray(f.colorIds) ? f.colorIds : []).includes(c.id);
-                              return (
-                                <button
-                                  key={c.id}
-                                  type="button"
-                                  className={"btn btn--ghost btn--sm" + (selected ? " chip active" : "")}
-                                  onClick={() => toggleCortinasFabricColor(f.id, c.id)}
-                                  style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
-                                >
-                                  <span
-                                    style={{
-                                      width: 14,
-                                      height: 14,
-                                      borderRadius: 999,
-                                      backgroundImage: c.imageUrl ? `url(${c.imageUrl})` : "none",
-                                      backgroundSize: "cover",
-                                      backgroundPosition: "center",
-                                      border: "1px solid var(--line)",
-                                      backgroundColor: "var(--surface-2)",
-                                    }}
-                                  />
-                                  {c.name}
-                                </button>
-                              );
-                            })}
-                            {(Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : []).length === 0 && <span className="muted">Cargá colores en el catálogo.</span>}
+            {cortinasSubtab === "colores" && (
+              <div className="admin__grid">
+                <div className="admin__panel">
+                  <div className="admin__panel-head">
+                    <b>Colores</b>
+                    <button type="button" className="btn btn--ghost btn--sm" onClick={createCortinasColor}>
+                      + Nuevo color
+                    </button>
+                  </div>
+                  <div className="admin__list">
+                    {(Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : []).map((c) => {
+                      const active = c.id === selectedColorId;
+                      return (
+                        <div
+                          key={c.id}
+                          className="admin__row"
+                          onClick={() => setSelectedColorId(c.id)}
+                          style={{
+                            cursor: "pointer",
+                            background: active ? "var(--accent-soft)" : "transparent",
+                            borderColor: active ? "var(--line-strong)" : undefined,
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div className="admin__thumb" style={{ width: 42, height: 42, backgroundImage: `url(${c.imageUrl || ""})` }} />
+                            <div style={{ display: "flex", flexDirection: "column" }}>
+                              <b>{c.name || "Sin nombre"}</b>
+                              <span className="muted" style={{ fontSize: 12 }}>
+                                {c.active === false ? "Inactivo" : "Activo"}
+                              </span>
+                            </div>
                           </div>
-                        </Field>
-                        <div className="field-grid">
-                          <Field label="Apertura">
-                            <select value={f.apertureEnabled ? "1" : "0"} onChange={(e) => updateCortinasFabric(f.id, { apertureEnabled: e.target.value === "1" })}>
-                              <option value="0">No</option>
-                              <option value="1">Sí</option>
-                            </select>
-                          </Field>
-                          <Field label="Activa">
-                            <select value={f.active !== false ? "1" : "0"} onChange={(e) => updateCortinasFabric(f.id, { active: e.target.value === "1" })}>
-                              <option value="1">Sí</option>
-                              <option value="0">No</option>
-                            </select>
-                          </Field>
                         </div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <label className="btn btn--ghost btn--sm" style={{ cursor: "pointer", justifyContent: "center" }}>
-                            {cortinasUploading === f.id ? "Subiendo..." : "Subir imagen"}
-                            <input type="file" accept="image/*" style={{ display: "none" }} disabled={cortinasUploading === f.id} onChange={(e) => onUploadCortinasFabricImage(f.id, e.target.files?.[0])} />
-                          </label>
-                          <button type="button" className="btn btn--ghost btn--sm" onClick={() => removeCortinasFabric(f.id)}>
-                            Eliminar
-                          </button>
+                      );
+                    })}
+                    {(Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : []).length === 0 && <div style={{ padding: 14 }} className="muted">Sin colores.</div>}
+                  </div>
+                </div>
+
+                <div className="admin__panel">
+                  <div className="admin__panel-head">
+                    <b>Editar color</b>
+                    <span className="muted">{selectedColorId || ""}</span>
+                  </div>
+                  <div style={{ padding: 14 }}>
+                    {(() => {
+                      const c = (Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : []).find((x) => x.id === selectedColorId);
+                      if (!c) return <div className="muted">Seleccioná un color de la lista.</div>;
+                      return (
+                        <div style={{ display: "grid", gap: 12 }}>
+                          <div className="field-grid">
+                            <Field label="Nombre">
+                              <input value={c.name || ""} onChange={(e) => updateCortinasColor(c.id, { name: e.target.value })} />
+                            </Field>
+                            <Field label="Activo">
+                              <select value={c.active !== false ? "1" : "0"} onChange={(e) => updateCortinasColor(c.id, { active: e.target.value === "1" })}>
+                                <option value="1">Sí</option>
+                                <option value="0">No</option>
+                              </select>
+                            </Field>
+                          </div>
+                          <Field label="Imagen">
+                            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                              <div className="admin__thumb" style={{ width: 72, height: 56, backgroundImage: `url(${c.imageUrl || ""})` }} />
+                              <label className="btn btn--ghost btn--sm" style={{ cursor: "pointer", justifyContent: "center" }}>
+                                {cortinasColorUploading === c.id ? "Subiendo..." : "Subir imagen"}
+                                <input type="file" accept="image/*" style={{ display: "none" }} disabled={cortinasColorUploading === c.id} onChange={(e) => onUploadCortinasColorImage(c.id, e.target.files?.[0])} />
+                              </label>
+                            </div>
+                          </Field>
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <button
+                              type="button"
+                              className="btn btn--ghost btn--sm"
+                              onClick={() => {
+                                if (!confirm("¿Eliminar color? Se desasigna de todas las telas.")) return;
+                                removeCortinasColor(c.id);
+                              }}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
                   </div>
-                ))}
-                {(Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : []).length === 0 && (
-                  <div style={{ padding: 14 }} className="muted">
-                    Sin telas.
-                  </div>
-                )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
