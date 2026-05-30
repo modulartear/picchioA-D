@@ -144,8 +144,8 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
     };
   }, [config]);
 
-  const areaRaw = (ancho / 100) * (alto / 100);
-  const area = Math.max(1, areaRaw);
+  const areaBase = Math.max(0, (Number(ancho) || 0) / 100) * Math.max(0, (Number(alto) || 0) / 100);
+  const area = areaBase + 0.25;
   const t = fabrics.find((f) => f.key === tela) || fabrics[0] || DEFAULT_FABRICS[1];
   const baseTela = Math.round(area * toNumber(t.pricePerM2));
   const extraMotor = accion === "motor" ? MOTOR_EXTRA : 0;
@@ -161,7 +161,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
   const handleAdd = () => {
     const desc = [
       `${ancho} × ${alto} cm`,
-      area > areaRaw ? "(mín. 1 m²)" : null,
+      `+0.25 m²`,
       selectedColor ? `Color ${selectedColor.name}` : null,
       accion === "motor" ? "Motorizada" : chainMetal ? "Cadena metálica" : "Cadena estándar",
       includeInstall ? "Incluye instalación" : "Sin instalación",
@@ -360,7 +360,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
             <div className="cortcalc__row">
               <span>Superficie</span>
               <b>
-                {areaRaw.toFixed(2)} m² {area > areaRaw && <small className="muted">(mín. 1 m²)</small>}
+                {(areaBase + 0.25).toFixed(2)} m² <small className="muted">({areaBase.toFixed(2)} + 0.25)</small>
               </b>
             </div>
             <div className="cortcalc__row">
