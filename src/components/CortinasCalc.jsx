@@ -18,7 +18,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
       label: "Sun Screen",
       tag: "Filtro UV · Visión hacia afuera",
       pricePerM2: 32000,
-      desc: "Tela técnica con apertura 5%, 10% o 14%. Filtra el sol manteniendo visibilidad. Ideal para oficinas y livings.",
+      desc: "Tela técnica que filtra el sol manteniendo visibilidad. Ideal para oficinas y livings.",
       active: true,
       imageUrl: "",
     },
