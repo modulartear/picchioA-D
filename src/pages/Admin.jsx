@@ -7,16 +7,19 @@ import { auth, db, firebaseConfigured } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
 import {
   deleteCategory,
+  deleteProject,
   deleteProduct,
   subscribeCategories,
   subscribeLeads,
   subscribeOrders,
+  subscribeProjects,
   subscribeProducts,
   updateOrderStatus,
   upsertCategory,
+  upsertProject,
   upsertProduct,
 } from "../services/admin";
-import { uploadCortinasColorImage, uploadCortinasFabricImage, uploadProductImage } from "../services/storage";
+import { uploadCortinasColorImage, uploadCortinasFabricImage, uploadProductImage, uploadProjectMedia } from "../services/storage";
 
 function fmtDate(ts) {
   try {
@@ -68,6 +71,7 @@ export function Admin() {
 
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [orders, setOrders] = useState([]);
   const [leads, setLeads] = useState([]);
   const [siteContentDoc, setSiteContentDoc] = useState({ loading: true, data: null });
@@ -129,8 +133,27 @@ export function Admin() {
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newAdminPass, setNewAdminPass] = useState("");
   const [creatingAdmin, setCreatingAdmin] = useState(false);
+  const [instagramDraft, setInstagramDraft] = useState({ username: "", profileUrl: "" });
+  const [instagramToken, setInstagramToken] = useState("");
+  const [syncingInstagram, setSyncingInstagram] = useState(false);
 
   const [catDraft, setCatDraft] = useState({ slug: "", name: "", tag: "", icon: "chair", order: 0, active: true });
+
+  const blankProject = useMemo(
+    () => ({
+      id: "",
+      title: "",
+      tag: "",
+      details: "",
+      active: true,
+      coverUrl: "",
+      media: [],
+      source: "manual",
+    }),
+    [],
+  );
+  const [projDraft, setProjDraft] = useState(blankProject);
+  const [uploadingProject, setUploadingProject] = useState(false);
 
   const blankProduct = useMemo(
     () => ({
@@ -330,12 +353,14 @@ export function Admin() {
 
     let unsubCats = () => {};
     let unsubProds = () => {};
+    let unsubProjects = () => {};
     let unsubOrders = () => {};
     let unsubLeads = () => {};
 
     try {
       unsubCats = subscribeCategories(setCategories, onSubError);
       unsubProds = subscribeProducts(setProducts, onSubError);
+      unsubProjects = subscribeProjects(setProjects, onSubError);
       unsubOrders = subscribeOrders(setOrders, onSubError);
       unsubLeads = subscribeLeads(setLeads, onSubError);
     } catch (err) {
@@ -345,6 +370,7 @@ export function Admin() {
     return () => {
       unsubCats();
       unsubProds();
+      unsubProjects();
       unsubOrders();
       unsubLeads();
     };
@@ -395,6 +421,21 @@ export function Admin() {
 
     setCheckoutDraft({ shippingOptions, paymentOptions });
   }, [DEFAULT_CHECKOUT.paymentOptions, DEFAULT_CHECKOUT.shippingOptions, siteContentDoc.data]);
+
+  useEffect(() => {
+    const ig = siteContentDoc.data?.instagram && typeof siteContentDoc.data.instagram === "object" ? siteContentDoc.data.instagram : {};
+    const username = String(ig?.username || "").trim();
+    const profileUrl = String(ig?.profileUrl || "").trim();
+    setInstagramDraft({ username, profileUrl });
+  }, [siteContentDoc.data]);
+
+  useEffect(() => {
+    try {
+      const key = "picchio:instagramAccessToken";
+      const v = localStorage.getItem(key);
+      if (v) setInstagramToken(String(v));
+    } catch (_) {}
+  }, []);
 
   useEffect(() => {
     if (tab !== "cortinas") return;
@@ -573,6 +614,101 @@ export function Admin() {
       setStatus({ type: "err", message: "No se pudo guardar la configuración" });
     } finally {
       setSavingCheckout(false);
+    }
+  }
+
+  async function onSaveInstagramSettings() {
+    if (!firebaseConfigured || !db) return;
+    setStatus({ type: "", message: "" });
+    try {
+      await setDoc(
+        doc(db, "site", "content"),
+        {
+          instagram: {
+            username: String(instagramDraft.username || "").trim(),
+            profileUrl: String(instagramDraft.profileUrl || "").trim(),
+          },
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+      try {
+        localStorage.setItem("picchio:instagramAccessToken", String(instagramToken || "").trim());
+      } catch (_) {}
+      setStatus({ type: "ok", message: "Instagram guardado" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    }
+  }
+
+  function firstLineTitle(caption) {
+    const c = String(caption || "").trim();
+    if (!c) return "";
+    const first = c.split("\n").map((s) => s.trim()).find((s) => s.length > 0) || "";
+    return first.slice(0, 90);
+  }
+
+  async function onSyncInstagram() {
+    const accessToken = String(instagramToken || "").trim();
+    if (!accessToken) return setStatus({ type: "err", message: "Pegá el access token para sincronizar" });
+    setSyncingInstagram(true);
+    setStatus({ type: "", message: "" });
+    try {
+      const url =
+        "https://graph.instagram.com/me/media?fields=id,caption,media_type,media_url,permalink,thumbnail_url,timestamp&access_token=" +
+        encodeURIComponent(accessToken);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Instagram respondió " + res.status);
+      const json = await res.json();
+      const items = Array.isArray(json?.data) ? json.data : [];
+      let upserted = 0;
+
+      for (const it of items) {
+        const igId = String(it?.id || "");
+        if (!igId) continue;
+        const mediaType = String(it?.media_type || "").toUpperCase();
+        const isVideo = mediaType === "VIDEO";
+        const mediaUrl = String(it?.media_url || "");
+        const thumb = String(it?.thumbnail_url || "");
+        const permalink = String(it?.permalink || "");
+        const caption = String(it?.caption || "");
+        const timestamp = String(it?.timestamp || "");
+        const title = firstLineTitle(caption) || "Instagram";
+        const docId = `ig_${igId}`;
+        const coverUrl = mediaUrl || thumb;
+        const media = [
+          {
+            id: `ig_media_${igId}`,
+            type: isVideo ? "video" : "image",
+            url: coverUrl,
+            order: 0,
+          },
+        ];
+
+        await upsertProject(docId, {
+          id: docId,
+          source: "instagram",
+          instagramId: igId,
+          instagramPermalink: permalink,
+          instagramTimestamp: timestamp,
+          title,
+          tag: instagramDraft.username ? `@${String(instagramDraft.username).replace(/^@/, "")}` : "Instagram",
+          details: caption,
+          active: true,
+          coverUrl,
+          media,
+        });
+        upserted++;
+      }
+
+      try {
+        localStorage.setItem("picchio:instagramAccessToken", accessToken);
+      } catch (_) {}
+      setStatus({ type: "ok", message: `Sincronización completa (${upserted})` });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    } finally {
+      setSyncingInstagram(false);
     }
   }
 
@@ -966,6 +1102,126 @@ export function Admin() {
     }
   }
 
+  function onEditProject(p) {
+    setProjDraft({
+      id: String(p?.id || "").trim(),
+      title: String(p?.title || ""),
+      tag: String(p?.tag || ""),
+      details: String(p?.details || ""),
+      active: p?.active !== false,
+      coverUrl: String(p?.coverUrl || ""),
+      media: Array.isArray(p?.media) ? p.media : [],
+      source: String(p?.source || "manual"),
+    });
+    setTab("projects");
+  }
+
+  async function onSaveProject(e) {
+    e?.preventDefault();
+    setStatus({ type: "", message: "" });
+    const title = String(projDraft.title || "").trim();
+    const id = String(projDraft.id || "").trim() || makeId("project");
+    if (!title) return setStatus({ type: "err", message: "El título es obligatorio" });
+    try {
+      await upsertProject(id, {
+        id,
+        title,
+        tag: String(projDraft.tag || "").trim(),
+        details: String(projDraft.details || "").trim(),
+        active: projDraft.active !== false,
+        coverUrl: String(projDraft.coverUrl || "").trim(),
+        media: Array.isArray(projDraft.media) ? projDraft.media : [],
+        source: String(projDraft.source || "manual"),
+      });
+      setProjDraft(blankProject);
+      setStatus({ type: "ok", message: "Proyecto guardado" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    }
+  }
+
+  async function onDeleteProjectById(id) {
+    if (!confirm("¿Eliminar proyecto?")) return;
+    setStatus({ type: "", message: "" });
+    try {
+      await deleteProject(id);
+      setStatus({ type: "ok", message: "Proyecto eliminado" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    }
+  }
+
+  async function onUploadProjectFiles(files) {
+    const projectId = String(projDraft.id || "").trim();
+    if (!projectId) return setStatus({ type: "err", message: "Primero guardá el proyecto (definí su ID)" });
+    const list = Array.from(files || []);
+    if (list.length === 0) return;
+    setUploadingProject(true);
+    setStatus({ type: "", message: "" });
+    try {
+      const uploaded = [];
+      for (const file of list) {
+        const mediaId = makeId("media");
+        const url = await uploadProjectMedia({ projectId, mediaId, file });
+        const type = String(file.type || "").startsWith("video/") ? "video" : "image";
+        uploaded.push({ id: mediaId, type, url, order: 0 });
+      }
+      const merged = [...(Array.isArray(projDraft.media) ? projDraft.media : []), ...uploaded].map((m, idx) => ({ ...m, order: idx }));
+      const nextCover =
+        String(projDraft.coverUrl || "").trim() ||
+        String(merged.find((m) => m.type === "image")?.url || merged[0]?.url || "");
+      const next = { ...projDraft, media: merged, coverUrl: nextCover };
+      setProjDraft(next);
+      await upsertProject(projectId, { media: merged, coverUrl: nextCover });
+      setStatus({ type: "ok", message: "Archivos subidos" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    } finally {
+      setUploadingProject(false);
+    }
+  }
+
+  async function setProjectCover(url) {
+    const projectId = String(projDraft.id || "").trim();
+    if (!projectId) return;
+    const coverUrl = String(url || "").trim();
+    setProjDraft((p) => ({ ...p, coverUrl }));
+    try {
+      await upsertProject(projectId, { coverUrl });
+    } catch (_) {}
+  }
+
+  async function removeProjectMedia(mediaId) {
+    const projectId = String(projDraft.id || "").trim();
+    if (!projectId) return;
+    const nextMedia = (Array.isArray(projDraft.media) ? projDraft.media : []).filter((m) => m.id !== mediaId).map((m, idx) => ({ ...m, order: idx }));
+    const cover = String(projDraft.coverUrl || "");
+    const coverOk = cover && nextMedia.some((m) => m.url === cover);
+    const nextCover = coverOk ? cover : String(nextMedia.find((m) => m.type === "image")?.url || nextMedia[0]?.url || "");
+    setProjDraft((p) => ({ ...p, media: nextMedia, coverUrl: nextCover }));
+    try {
+      await upsertProject(projectId, { media: nextMedia, coverUrl: nextCover });
+    } catch (_) {}
+  }
+
+  async function moveProjectMedia(mediaId, dir) {
+    const projectId = String(projDraft.id || "").trim();
+    if (!projectId) return;
+    const items = Array.isArray(projDraft.media) ? [...projDraft.media] : [];
+    const idx = items.findIndex((m) => m.id === mediaId);
+    if (idx < 0) return;
+    const nextIdx = dir === "up" ? idx - 1 : idx + 1;
+    if (nextIdx < 0 || nextIdx >= items.length) return;
+    const tmp = items[idx];
+    items[idx] = items[nextIdx];
+    items[nextIdx] = tmp;
+    const next = items.map((m, i) => ({ ...m, order: i }));
+    setProjDraft((p) => ({ ...p, media: next }));
+    try {
+      await upsertProject(projectId, { media: next });
+    } catch (_) {}
+  }
+
   async function onChangeOrderStatus(orderId, status) {
     try {
       await updateOrderStatus(orderId, status);
@@ -1107,6 +1363,7 @@ export function Admin() {
             { k: "products", l: "Productos" },
             { k: "categories", l: "Categorías" },
             { k: "cortinas", l: "Cortinas" },
+            { k: "projects", l: "Proyectos" },
             { k: "orders", l: "Pedidos" },
             { k: "leads", l: "Consultas" },
             { k: "settings", l: "Configuración" },
@@ -1193,6 +1450,7 @@ export function Admin() {
                 { k: "admins", l: "Usuarios admin" },
                 { k: "shipping", l: "Envío" },
                 { k: "payment", l: "Pago" },
+                { k: "instagram", l: "Instagram" },
               ].map((t) => (
                 <button key={t.k} className={"chip" + (settingsTab === t.k ? " active" : "")} onClick={() => setSettingsTab(t.k)}>
                   {t.l}
@@ -1377,6 +1635,44 @@ export function Admin() {
                   <div style={{ padding: "0 14px 14px" }}>
                     <p className="muted" style={{ margin: 0, fontSize: 12 }}>
                       Se guarda en <b>site/content.checkout</b>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {settingsTab === "instagram" && (
+              <div className="admin__grid" style={{ marginTop: 16 }}>
+                <div className="admin__panel">
+                  <div className="admin__panel-head" style={{ justifyContent: "space-between" }}>
+                    <b>Instagram</b>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <button type="button" className="btn btn--ghost btn--sm" onClick={onSyncInstagram} disabled={syncingInstagram}>
+                        {syncingInstagram ? "Sincronizando..." : "Sincronizar ahora"}
+                      </button>
+                      <button type="button" className="btn btn--accent btn--sm" onClick={onSaveInstagramSettings}>
+                        Guardar
+                      </button>
+                    </div>
+                  </div>
+                  <div style={{ padding: 14, display: "grid", gap: 12 }}>
+                    <div className="field-grid">
+                      <Field label="Usuario">
+                        <input value={instagramDraft.username} onChange={(e) => setInstagramDraft((p) => ({ ...p, username: e.target.value }))} placeholder="picchioamoblamientos" />
+                      </Field>
+                      <Field label="Link de perfil">
+                        <input
+                          value={instagramDraft.profileUrl}
+                          onChange={(e) => setInstagramDraft((p) => ({ ...p, profileUrl: e.target.value }))}
+                          placeholder="https://instagram.com/..."
+                        />
+                      </Field>
+                    </div>
+                    <Field label="Access token (se guarda solo en este navegador)">
+                      <input value={instagramToken} onChange={(e) => setInstagramToken(e.target.value)} placeholder="IG access token..." />
+                    </Field>
+                    <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+                      “Guardar” actualiza <b>site/content.instagram</b>. “Sincronizar ahora” crea/actualiza proyectos con ID <b>ig_*</b>.
                     </p>
                   </div>
                 </div>
@@ -2017,6 +2313,151 @@ export function Admin() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {tab === "projects" && (
+          <div className="admin__grid" style={{ marginTop: 16 }}>
+            <div className="admin__panel">
+              <div className="admin__panel-head" style={{ justifyContent: "space-between" }}>
+                <b>Editar proyecto</b>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button type="button" className="btn btn--ghost btn--sm" onClick={() => setProjDraft(blankProject)}>
+                    Nuevo
+                  </button>
+                </div>
+              </div>
+              <div style={{ padding: 14 }}>
+                <form onSubmit={onSaveProject} className="admin__auth">
+                  <Field label="ID (docId)">
+                    <input value={projDraft.id} onChange={(e) => setProjDraft((p) => ({ ...p, id: e.target.value.trim() }))} placeholder="ej: cocina-centro-2026" />
+                  </Field>
+                  <Field label="Título">
+                    <input value={projDraft.title} onChange={(e) => setProjDraft((p) => ({ ...p, title: e.target.value }))} placeholder="Proyecto terminado" />
+                  </Field>
+                  <Field label="Etiqueta">
+                    <input value={projDraft.tag} onChange={(e) => setProjDraft((p) => ({ ...p, tag: e.target.value }))} placeholder="Cocinas / Placards / Oficina" />
+                  </Field>
+                  <Field label="Detalles del trabajo">
+                    <textarea rows={4} value={projDraft.details} onChange={(e) => setProjDraft((p) => ({ ...p, details: e.target.value }))} />
+                  </Field>
+
+                  <div className="field-grid">
+                    <Field label="Activo">
+                      <select value={projDraft.active !== false ? "1" : "0"} onChange={(e) => setProjDraft((p) => ({ ...p, active: e.target.value === "1" }))}>
+                        <option value="1">Sí</option>
+                        <option value="0">No</option>
+                      </select>
+                    </Field>
+                    <Field label="Portada (URL)">
+                      <input value={projDraft.coverUrl} onChange={(e) => setProjDraft((p) => ({ ...p, coverUrl: e.target.value }))} placeholder="se completa sola al subir" />
+                    </Field>
+                  </div>
+
+                  <Field label="Fotos / Videos">
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <label className="btn btn--ghost" style={{ cursor: "pointer", justifyContent: "center" }}>
+                        {uploadingProject ? "Subiendo..." : "Subir archivos"}
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          multiple
+                          style={{ display: "none" }}
+                          disabled={uploadingProject}
+                          onChange={(e) => onUploadProjectFiles(e.target.files)}
+                        />
+                      </label>
+                      <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+                        Para subir archivos necesitás definir el ID del proyecto (y guardarlo al menos una vez).
+                      </p>
+
+                      {(Array.isArray(projDraft.media) ? projDraft.media : []).length > 0 ? (
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                          {(projDraft.media || [])
+                            .slice()
+                            .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
+                            .map((m, idx) => {
+                              const url = String(m?.url || "");
+                              const type = String(m?.type || "image");
+                              const isCover = url && url === String(projDraft.coverUrl || "");
+                              return (
+                                <div key={m.id || idx} style={{ border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", background: "var(--bg)" }}>
+                                  <div style={{ height: 120, background: "var(--surface)" }}>
+                                    {type === "video" ? (
+                                      <video src={url} controls style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                    ) : (
+                                      <div style={{ width: "100%", height: "100%", backgroundImage: `url(${url})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+                                    )}
+                                  </div>
+                                  <div style={{ padding: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                    <button type="button" className="btn btn--ghost btn--sm" onClick={() => moveProjectMedia(m.id, "up")} disabled={idx === 0}>
+                                      ↑
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn--ghost btn--sm"
+                                      onClick={() => moveProjectMedia(m.id, "down")}
+                                      disabled={idx === (projDraft.media || []).length - 1}
+                                    >
+                                      ↓
+                                    </button>
+                                    <button type="button" className={"btn btn--ghost btn--sm" + (isCover ? " btn--accent" : "")} onClick={() => setProjectCover(url)} disabled={!url}>
+                                      Portada
+                                    </button>
+                                    <button type="button" className="btn btn--ghost btn--sm" onClick={() => removeProjectMedia(m.id)} style={{ marginLeft: "auto" }}>
+                                      Quitar
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      ) : (
+                        <span className="muted">Sin archivos todavía.</span>
+                      )}
+                    </div>
+                  </Field>
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button className="btn btn--accent">Guardar</button>
+                    <button type="button" className="btn btn--ghost" onClick={() => setProjDraft(blankProject)}>
+                      Limpiar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div className="admin__panel">
+              <div className="admin__panel-head">
+                <b>Listado</b>
+                <span className="muted">{projects.length}</span>
+              </div>
+              <div className="admin__list">
+                {projects.map((p) => (
+                  <div key={p.id} className="admin__row">
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div className="admin__thumb" style={{ backgroundImage: `url(${p.coverUrl || ""})` }} />
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <b>{p.title || "Sin título"}</b>
+                        <span className="muted" style={{ fontSize: 12 }}>
+                          {p.id} {p.active === false ? "· inactivo" : ""} {p.source ? `· ${p.source}` : ""}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button className="btn btn--ghost btn--sm" onClick={() => onEditProject(p)}>
+                        Editar
+                      </button>
+                      <button className="btn btn--ghost btn--sm" onClick={() => onDeleteProjectById(p.id)}>
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {projects.length === 0 && <div style={{ padding: 14 }} className="muted">Sin proyectos todavía.</div>}
+              </div>
+            </div>
           </div>
         )}
 

@@ -55,6 +55,16 @@ export function subscribeLeads(cb, onError) {
   );
 }
 
+export function subscribeProjects(cb, onError) {
+  assertConfigured();
+  const q = query(collection(db, "projects"), orderBy("updatedAt", "desc"));
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    onError,
+  );
+}
+
 export async function upsertCategory(slug, data) {
   assertConfigured();
   await setDoc(
@@ -89,6 +99,24 @@ export async function upsertProduct(id, data) {
 export async function deleteProduct(id) {
   assertConfigured();
   await deleteDoc(doc(db, "products", id));
+}
+
+export async function upsertProject(id, data) {
+  assertConfigured();
+  await setDoc(
+    doc(db, "projects", id),
+    {
+      ...data,
+      id,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+export async function deleteProject(id) {
+  assertConfigured();
+  await deleteDoc(doc(db, "projects", id));
 }
 
 export async function updateOrderStatus(id, status) {

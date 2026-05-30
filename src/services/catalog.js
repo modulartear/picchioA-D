@@ -143,7 +143,7 @@ export async function fetchProductById(id) {
 
 export async function fetchProjects() {
   assertConfigured();
-  const q = query(collection(db, "projects"));
+  const q = query(collection(db, "projects"), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }

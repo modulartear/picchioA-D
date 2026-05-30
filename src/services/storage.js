@@ -31,3 +31,12 @@ export async function uploadCortinasColorImage({ colorId, file }) {
   await uploadBytes(r, file);
   return await getDownloadURL(r);
 }
+
+export async function uploadProjectMedia({ projectId, mediaId, file }) {
+  assertConfigured();
+  const safeName = String(file.name || "media").replace(/[^\w.\-]+/g, "-");
+  const key = `projects/${projectId}/${mediaId}-${Date.now()}-${safeName}`;
+  const r = ref(storage, key);
+  await uploadBytes(r, file);
+  return await getDownloadURL(r);
+}
