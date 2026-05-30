@@ -56,6 +56,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
   const [tela, setTela] = useState("blackout");
   const [apertura, setApertura] = useState(APERTURAS[1]);
   const [accion, setAccion] = useState("cadena");
+  const [colorId, setColorId] = useState("");
   const [includeInstall, setIncludeInstall] = useState(true);
   const [chainMetal, setChainMetal] = useState(false);
   const [systemBlack, setSystemBlack] = useState(false);
@@ -95,9 +96,22 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
         apertureEnabled: !!f?.apertureEnabled,
         active: f?.active !== false,
         imageUrl: String(f?.imageUrl || ""),
+        colorIds: Array.isArray(f?.colorIds) ? f.colorIds.map((x) => String(x)) : [],
       }))
       .filter((f) => f.label.length > 0 && f.pricePerM2 > 0 && f.active !== false);
     return mapped.length > 0 ? mapped : DEFAULT_FABRICS.filter((f) => f.active !== false);
+  }, [config]);
+
+  const colors = useMemo(() => {
+    const raw = Array.isArray(config?.colors) ? config.colors : [];
+    return raw
+      .map((c, i) => ({
+        id: String(c?.id || `color_${i}`),
+        name: String(c?.name || "").trim(),
+        imageUrl: String(c?.imageUrl || ""),
+        active: c?.active !== false,
+      }))
+      .filter((c) => c.name.length > 0 && c.active !== false);
   }, [config]);
 
   useEffect(() => {
@@ -105,6 +119,24 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
       setTela(fabrics[0]?.key || "blackout");
     }
   }, [fabrics, tela]);
+
+  const availableColors = useMemo(() => {
+    const fabric = fabrics.find((f) => f.key === tela) || fabrics[0] || null;
+    const ids = Array.isArray(fabric?.colorIds) ? fabric.colorIds : [];
+    if (ids.length === 0) return [];
+    const set = new Set(ids.map(String));
+    return colors.filter((c) => set.has(c.id));
+  }, [colors, fabrics, tela]);
+
+  useEffect(() => {
+    if (availableColors.length === 0) {
+      setColorId("");
+      return;
+    }
+    if (!availableColors.some((c) => c.id === colorId)) {
+      setColorId(availableColors[0].id);
+    }
+  }, [availableColors, colorId]);
 
   const pricing = useMemo(() => {
     const p = config?.pricing || {};
@@ -130,12 +162,14 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
   const extraHeight = alto > pricing.extraHeightThresholdCm ? pricing.extraHeightPrice : 0;
   const total = baseTela + extraMotor + extraChainMetal + extraInstall + extraSystemBlack + extraZocalo + extraHeight;
   const fmt = (n) => "$" + n.toLocaleString("es-AR");
+  const selectedColor = availableColors.find((c) => c.id === colorId) || null;
 
   const handleAdd = () => {
     const desc = [
       `${ancho} × ${alto} cm`,
       area > areaRaw ? "(mín. 1 m²)" : null,
       t.apertureEnabled ? `Apertura ${apertura.split(" ")[0]}` : null,
+      selectedColor ? `Color ${selectedColor.name}` : null,
       accion === "motor" ? "Motorizada" : chainMetal ? "Cadena metálica" : "Cadena estándar",
       includeInstall ? "Incluye instalación" : "Sin instalación",
       systemBlack ? "Sistema negro" : null,
@@ -193,6 +227,34 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
             </div>
             <p className="cortcalc__hint">{t.desc}</p>
           </div>
+
+          {availableColors.length > 0 && (
+            <div className="cortcalc__group">
+              <span className="cortcalc__lbl">Color</span>
+              <div className="cortcalc__chips">
+                {availableColors.map((c) => (
+                  <button key={c.id} type="button" className={"chip" + (colorId === c.id ? " active" : "")} onClick={() => setColorId(c.id)}>
+                    <span
+                      style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: 999,
+                        backgroundImage: c.imageUrl ? `url(${c.imageUrl})` : "none",
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        border: "1px solid var(--line)",
+                        backgroundColor: "var(--surface-2)",
+                        display: "inline-block",
+                        marginRight: 8,
+                        verticalAlign: "middle",
+                      }}
+                    />
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="cortcalc__measures">
             <div className="cortcalc__measure">

@@ -15,7 +15,7 @@ import {
   upsertCategory,
   upsertProduct,
 } from "../services/admin";
-import { uploadCortinasFabricImage, uploadProductImage } from "../services/storage";
+import { uploadCortinasColorImage, uploadCortinasFabricImage, uploadProductImage } from "../services/storage";
 
 function fmtDate(ts) {
   try {
@@ -119,6 +119,7 @@ export function Admin() {
         extraHeightThresholdCm: 220,
         extraHeightPrice: 0,
       },
+      colors: [],
     }),
     [],
   );
@@ -133,6 +134,8 @@ export function Admin() {
     active: true,
     imageUrl: "",
   });
+  const [cortinasColorUploading, setCortinasColorUploading] = useState("");
+  const [cortinasNewColor, setCortinasNewColor] = useState({ name: "", active: true, imageUrl: "" });
 
   const defaultEnvioText = "Envío gratis en Venado Tuerto. Envío a todo el país coordinado por transporte propio o flete.";
   const defaultGarantiaText = "Garantía Picchio: 1 año en tapicería, 2 años en estructura y 5 años en herrajes.";
@@ -223,9 +226,23 @@ export function Admin() {
               apertureEnabled: !!f?.apertureEnabled,
               active: f?.active !== false,
               imageUrl: String(f?.imageUrl || ""),
+              colorIds: Array.isArray(f?.colorIds) ? f.colorIds.map((x) => String(x)) : [],
             }))
             .filter((f) => f.name.length > 0)
         : blankCortinas.fabrics;
+
+    const colorsRaw = Array.isArray(cfg?.colors) ? cfg.colors : [];
+    const colors =
+      colorsRaw.length > 0
+        ? colorsRaw
+            .map((c, i) => ({
+              id: String(c?.id || `color_${i}`),
+              name: String(c?.name || "").trim(),
+              imageUrl: String(c?.imageUrl || ""),
+              active: c?.active !== false,
+            }))
+            .filter((c) => c.name.length > 0)
+        : blankCortinas.colors;
 
     const pricing = {
       installPrice: toNumber(cfg?.pricing?.installPrice),
@@ -236,8 +253,9 @@ export function Admin() {
       extraHeightPrice: toNumber(cfg?.pricing?.extraHeightPrice),
     };
 
-    setCortinasDraft({ fabrics, pricing });
+    setCortinasDraft({ fabrics, pricing, colors });
     setCortinasNew({ name: "", tag: "", pricePerM2: "", apertureEnabled: false, active: true, imageUrl: "" });
+    setCortinasNewColor({ name: "", active: true, imageUrl: "" });
   }, [tab, categories, blankCortinas]);
 
   useEffect(() => {
@@ -277,8 +295,38 @@ export function Admin() {
     }));
   }
 
+  function updateCortinasColor(id, patch) {
+    setCortinasDraft((p) => ({
+      ...p,
+      colors: (Array.isArray(p.colors) ? p.colors : []).map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    }));
+  }
+
   function removeCortinasFabric(id) {
     setCortinasDraft((p) => ({ ...p, fabrics: (Array.isArray(p.fabrics) ? p.fabrics : []).filter((f) => f.id !== id) }));
+  }
+
+  function removeCortinasColor(id) {
+    setCortinasDraft((p) => {
+      const colors = (Array.isArray(p.colors) ? p.colors : []).filter((c) => c.id !== id);
+      const fabrics = (Array.isArray(p.fabrics) ? p.fabrics : []).map((f) => ({
+        ...f,
+        colorIds: (Array.isArray(f.colorIds) ? f.colorIds : []).filter((x) => x !== id),
+      }));
+      return { ...p, colors, fabrics };
+    });
+  }
+
+  function toggleCortinasFabricColor(fabricId, colorId) {
+    setCortinasDraft((p) => {
+      const fabrics = (Array.isArray(p.fabrics) ? p.fabrics : []).map((f) => {
+        if (f.id !== fabricId) return f;
+        const ids = Array.isArray(f.colorIds) ? f.colorIds.map((x) => String(x)) : [];
+        const next = ids.includes(colorId) ? ids.filter((x) => x !== colorId) : [...ids, colorId];
+        return { ...f, colorIds: next };
+      });
+      return { ...p, fabrics };
+    });
   }
 
   async function onUploadCortinasFabricImage(fabricId, file) {
@@ -293,6 +341,21 @@ export function Admin() {
       setStatus({ type: "err", message: describeError(err) });
     } finally {
       setCortinasUploading("");
+    }
+  }
+
+  async function onUploadCortinasColorImage(colorId, file) {
+    if (!file) return;
+    setStatus({ type: "", message: "" });
+    setCortinasColorUploading(colorId);
+    try {
+      const url = await uploadCortinasColorImage({ colorId, file });
+      updateCortinasColor(colorId, { imageUrl: url });
+      setStatus({ type: "ok", message: "Imagen de color subida" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    } finally {
+      setCortinasColorUploading("");
     }
   }
 
@@ -311,6 +374,21 @@ export function Admin() {
     }
   }
 
+  async function onUploadCortinasNewColorImage(file) {
+    if (!file) return;
+    setStatus({ type: "", message: "" });
+    setCortinasColorUploading("new");
+    try {
+      const url = await uploadCortinasColorImage({ colorId: makeId("color"), file });
+      setCortinasNewColor((p) => ({ ...p, imageUrl: url }));
+      setStatus({ type: "ok", message: "Imagen de color subida" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    } finally {
+      setCortinasColorUploading("");
+    }
+  }
+
   function addCortinasFabric() {
     const name = String(cortinasNew.name || "").trim();
     if (!name) return setStatus({ type: "err", message: "Tela: falta el nombre" });
@@ -323,10 +401,21 @@ export function Admin() {
       apertureEnabled: !!cortinasNew.apertureEnabled,
       active: cortinasNew.active !== false,
       imageUrl: String(cortinasNew.imageUrl || ""),
+      colorIds: [],
     };
     setCortinasDraft((p) => ({ ...p, fabrics: [next, ...(Array.isArray(p.fabrics) ? p.fabrics : [])] }));
     setCortinasNew({ name: "", tag: "", pricePerM2: "", apertureEnabled: false, active: true, imageUrl: "" });
     setStatus({ type: "ok", message: "Tela agregada (guardá para aplicar)" });
+  }
+
+  function addCortinasColor() {
+    const name = String(cortinasNewColor.name || "").trim();
+    if (!name) return setStatus({ type: "err", message: "Color: falta el nombre" });
+    const id = makeId("color");
+    const next = { id, name, imageUrl: String(cortinasNewColor.imageUrl || ""), active: cortinasNewColor.active !== false };
+    setCortinasDraft((p) => ({ ...p, colors: [next, ...(Array.isArray(p.colors) ? p.colors : [])] }));
+    setCortinasNewColor({ name: "", active: true, imageUrl: "" });
+    setStatus({ type: "ok", message: "Color agregado (guardá para aplicar)" });
   }
 
   async function onSaveCortinasConfig() {
@@ -352,8 +441,18 @@ export function Admin() {
           apertureEnabled: !!f?.apertureEnabled,
           active: f?.active !== false,
           imageUrl: String(f?.imageUrl || ""),
+          colorIds: Array.isArray(f?.colorIds) ? f.colorIds.map((x) => String(x)) : [],
         }))
         .filter((f) => f.name.length > 0 && f.pricePerM2 > 0);
+
+      const colors = (Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : [])
+        .map((c, i) => ({
+          id: String(c?.id || `color_${i}`),
+          name: String(c?.name || "").trim(),
+          imageUrl: String(c?.imageUrl || ""),
+          active: c?.active !== false,
+        }))
+        .filter((c) => c.name.length > 0);
 
       const pricing = {
         installPrice: toNumber(cortinasDraft?.pricing?.installPrice),
@@ -366,7 +465,7 @@ export function Admin() {
 
       await upsertCategory("cortinas", {
         ...baseCategory,
-        cortinasConfig: { fabrics, pricing },
+        cortinasConfig: { fabrics, pricing, colors },
       });
       setStatus({ type: "ok", message: "Configuración de cortinas guardada" });
     } catch (err) {
@@ -1111,6 +1210,90 @@ export function Admin() {
                 </div>
 
                 <div style={{ border: "1px solid var(--line-strong)", borderRadius: 12, padding: 12, background: "var(--bg)" }}>
+                  <b>Catálogo de colores</b>
+                  <div className="admin__list" style={{ marginTop: 12 }}>
+                    {(Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : []).map((c) => (
+                      <div key={c.id} className="admin__row" style={{ alignItems: "flex-start" }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flex: 1 }}>
+                          <div className="admin__thumb" style={{ backgroundImage: `url(${c.imageUrl || ""})` }} />
+                          <div style={{ display: "grid", gap: 10, width: "100%" }}>
+                            <div className="field-grid">
+                              <Field label="Nombre">
+                                <input value={c.name || ""} onChange={(e) => updateCortinasColor(c.id, { name: e.target.value })} />
+                              </Field>
+                              <Field label="Activo">
+                                <select value={c.active !== false ? "1" : "0"} onChange={(e) => updateCortinasColor(c.id, { active: e.target.value === "1" })}>
+                                  <option value="1">Sí</option>
+                                  <option value="0">No</option>
+                                </select>
+                              </Field>
+                            </div>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              <label className="btn btn--ghost btn--sm" style={{ cursor: "pointer", justifyContent: "center" }}>
+                                {cortinasColorUploading === c.id ? "Subiendo..." : "Subir imagen"}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  style={{ display: "none" }}
+                                  disabled={cortinasColorUploading === c.id}
+                                  onChange={(e) => onUploadCortinasColorImage(c.id, e.target.files?.[0])}
+                                />
+                              </label>
+                              <button type="button" className="btn btn--ghost btn--sm" onClick={() => removeCortinasColor(c.id)}>
+                                Eliminar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {(Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : []).length === 0 && <div className="muted">Sin colores cargados.</div>}
+                  </div>
+
+                  <div style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 12 }}>
+                    <b>Nuevo color</b>
+                    <div className="field-grid" style={{ marginTop: 12 }}>
+                      <Field label="Nombre">
+                        <input value={cortinasNewColor.name} onChange={(e) => setCortinasNewColor((p) => ({ ...p, name: e.target.value }))} placeholder="Ej: Gris perla" />
+                      </Field>
+                      <Field label="Activo">
+                        <select value={cortinasNewColor.active ? "1" : "0"} onChange={(e) => setCortinasNewColor((p) => ({ ...p, active: e.target.value === "1" }))}>
+                          <option value="1">Sí</option>
+                          <option value="0">No</option>
+                        </select>
+                      </Field>
+                      <div style={{ display: "grid", gap: 8 }}>
+                        <span className="muted" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
+                          Imagen
+                        </span>
+                        <label className="btn btn--ghost btn--sm" style={{ cursor: "pointer", justifyContent: "center" }}>
+                          {cortinasColorUploading === "new" ? "Subiendo..." : "Subir imagen"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: "none" }}
+                            disabled={cortinasColorUploading === "new"}
+                            onChange={(e) => onUploadCortinasNewColorImage(e.target.files?.[0])}
+                          />
+                        </label>
+                        {cortinasNewColor.imageUrl ? (
+                          <div className="admin__thumb" style={{ width: 120, height: 80, backgroundImage: `url(${cortinasNewColor.imageUrl})` }} />
+                        ) : (
+                          <span className="muted" style={{ fontSize: 12 }}>
+                            (opcional)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+                      <button type="button" className="btn btn--ghost btn--sm" onClick={addCortinasColor}>
+                        + Agregar color
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ border: "1px solid var(--line-strong)", borderRadius: 12, padding: 12, background: "var(--bg)" }}>
                   <b>Nueva tela</b>
                   <div className="field-grid" style={{ marginTop: 12 }}>
                     <Field label="Nombre">
@@ -1187,6 +1370,37 @@ export function Admin() {
                         </div>
                         <Field label="Tag">
                           <input value={f.tag || ""} onChange={(e) => updateCortinasFabric(f.id, { tag: e.target.value })} />
+                        </Field>
+                        <Field label="Colores">
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                            {(Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : []).map((c) => {
+                              const selected = (Array.isArray(f.colorIds) ? f.colorIds : []).includes(c.id);
+                              return (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  className={"btn btn--ghost btn--sm" + (selected ? " chip active" : "")}
+                                  onClick={() => toggleCortinasFabricColor(f.id, c.id)}
+                                  style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+                                >
+                                  <span
+                                    style={{
+                                      width: 14,
+                                      height: 14,
+                                      borderRadius: 999,
+                                      backgroundImage: c.imageUrl ? `url(${c.imageUrl})` : "none",
+                                      backgroundSize: "cover",
+                                      backgroundPosition: "center",
+                                      border: "1px solid var(--line)",
+                                      backgroundColor: "var(--surface-2)",
+                                    }}
+                                  />
+                                  {c.name}
+                                </button>
+                              );
+                            })}
+                            {(Array.isArray(cortinasDraft.colors) ? cortinasDraft.colors : []).length === 0 && <span className="muted">Cargá colores en el catálogo.</span>}
+                          </div>
                         </Field>
                         <div className="field-grid">
                           <Field label="Apertura">

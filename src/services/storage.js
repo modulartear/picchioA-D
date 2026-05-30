@@ -22,3 +22,12 @@ export async function uploadCortinasFabricImage({ fabricId, file }) {
   await uploadBytes(r, file);
   return await getDownloadURL(r);
 }
+
+export async function uploadCortinasColorImage({ colorId, file }) {
+  assertConfigured();
+  const safeName = String(file.name || "image").replace(/[^\w.\-]+/g, "-");
+  const key = `products/cortinas/colors/${colorId}/${Date.now()}-${safeName}`;
+  const r = ref(storage, key);
+  await uploadBytes(r, file);
+  return await getDownloadURL(r);
+}
