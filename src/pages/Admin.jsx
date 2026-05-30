@@ -15,7 +15,7 @@ import {
   upsertCategory,
   upsertProduct,
 } from "../services/admin";
-import { uploadProductImage } from "../services/storage";
+import { uploadCortinasFabricImage, uploadProductImage } from "../services/storage";
 
 function fmtDate(ts) {
   try {
@@ -80,6 +80,60 @@ export function Admin() {
   const [colorName, setColorName] = useState("");
   const [colorHex, setColorHex] = useState("#111111");
 
+  const blankCortinas = useMemo(
+    () => ({
+      fabrics: [
+        {
+          id: "sun-screen",
+          name: "Sun Screen",
+          tag: "Filtro UV · Visión hacia afuera",
+          pricePerM2: 32000,
+          apertureEnabled: true,
+          active: true,
+          imageUrl: "",
+        },
+        {
+          id: "blackout",
+          name: "Black-Out",
+          tag: "100% opaca · Oscurece totalmente",
+          pricePerM2: 38000,
+          apertureEnabled: false,
+          active: true,
+          imageUrl: "",
+        },
+        {
+          id: "doble",
+          name: "Sistema Doble",
+          tag: "Screen + Black-Out en un solo sistema",
+          pricePerM2: 75000,
+          apertureEnabled: false,
+          active: true,
+          imageUrl: "",
+        },
+      ],
+      pricing: {
+        installPrice: 0,
+        chainMetalPrice: 0,
+        systemBlackPrice: 0,
+        zocaloPrice: 0,
+        extraHeightThresholdCm: 220,
+        extraHeightPrice: 0,
+      },
+    }),
+    [],
+  );
+  const [cortinasDraft, setCortinasDraft] = useState(blankCortinas);
+  const [cortinasSaving, setCortinasSaving] = useState(false);
+  const [cortinasUploading, setCortinasUploading] = useState("");
+  const [cortinasNew, setCortinasNew] = useState({
+    name: "",
+    tag: "",
+    pricePerM2: "",
+    apertureEnabled: false,
+    active: true,
+    imageUrl: "",
+  });
+
   const defaultEnvioText = "Envío gratis en Venado Tuerto. Envío a todo el país coordinado por transporte propio o flete.";
   const defaultGarantiaText = "Garantía Picchio: 1 año en tapicería, 2 años en estructura y 5 años en herrajes.";
 
@@ -106,6 +160,19 @@ export function Admin() {
     const message = err?.message ? String(err.message) : "";
     if (code && message) return `${code}: ${message}`;
     return code || message || "Error";
+  }
+
+  function toNumber(v) {
+    const n = typeof v === "number" ? v : parseFloat(String(v ?? "").replace(",", "."));
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function makeId(prefix = "id") {
+    try {
+      return crypto.randomUUID();
+    } catch (_) {
+      return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    }
   }
 
   useEffect(() => {
@@ -140,6 +207,40 @@ export function Admin() {
   }, [authed, isAdmin]);
 
   useEffect(() => {
+    if (tab !== "cortinas") return;
+    const existing = categories.find((c) => (c.slug || c.id) === "cortinas");
+    const cfg = existing?.cortinasConfig || null;
+
+    const fabricsRaw = Array.isArray(cfg?.fabrics) ? cfg.fabrics : [];
+    const fabrics =
+      fabricsRaw.length > 0
+        ? fabricsRaw
+            .map((f, i) => ({
+              id: String(f?.id || f?.key || `fabric_${i}`),
+              name: String(f?.name || f?.label || "").trim(),
+              tag: String(f?.tag || "").trim(),
+              pricePerM2: toNumber(f?.pricePerM2),
+              apertureEnabled: !!f?.apertureEnabled,
+              active: f?.active !== false,
+              imageUrl: String(f?.imageUrl || ""),
+            }))
+            .filter((f) => f.name.length > 0)
+        : blankCortinas.fabrics;
+
+    const pricing = {
+      installPrice: toNumber(cfg?.pricing?.installPrice),
+      chainMetalPrice: toNumber(cfg?.pricing?.chainMetalPrice),
+      systemBlackPrice: toNumber(cfg?.pricing?.systemBlackPrice),
+      zocaloPrice: toNumber(cfg?.pricing?.zocaloPrice),
+      extraHeightThresholdCm: toNumber(cfg?.pricing?.extraHeightThresholdCm || 220) || 220,
+      extraHeightPrice: toNumber(cfg?.pricing?.extraHeightPrice),
+    };
+
+    setCortinasDraft({ fabrics, pricing });
+    setCortinasNew({ name: "", tag: "", pricePerM2: "", apertureEnabled: false, active: true, imageUrl: "" });
+  }, [tab, categories, blankCortinas]);
+
+  useEffect(() => {
     if (authed && !isAdmin && !loading) {
       setStatus({ type: "err", message: "Tu usuario no tiene permisos de administrador" });
     }
@@ -163,6 +264,116 @@ export function Admin() {
 
   async function onLogout() {
     await signOut(auth);
+  }
+
+  function updateCortinasPricing(patch) {
+    setCortinasDraft((p) => ({ ...p, pricing: { ...p.pricing, ...patch } }));
+  }
+
+  function updateCortinasFabric(id, patch) {
+    setCortinasDraft((p) => ({
+      ...p,
+      fabrics: (Array.isArray(p.fabrics) ? p.fabrics : []).map((f) => (f.id === id ? { ...f, ...patch } : f)),
+    }));
+  }
+
+  function removeCortinasFabric(id) {
+    setCortinasDraft((p) => ({ ...p, fabrics: (Array.isArray(p.fabrics) ? p.fabrics : []).filter((f) => f.id !== id) }));
+  }
+
+  async function onUploadCortinasFabricImage(fabricId, file) {
+    if (!file) return;
+    setStatus({ type: "", message: "" });
+    setCortinasUploading(fabricId);
+    try {
+      const url = await uploadCortinasFabricImage({ fabricId, file });
+      updateCortinasFabric(fabricId, { imageUrl: url });
+      setStatus({ type: "ok", message: "Imagen de tela subida" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    } finally {
+      setCortinasUploading("");
+    }
+  }
+
+  async function onUploadCortinasNewImage(file) {
+    if (!file) return;
+    setStatus({ type: "", message: "" });
+    setCortinasUploading("new");
+    try {
+      const url = await uploadCortinasFabricImage({ fabricId: makeId("fabric"), file });
+      setCortinasNew((p) => ({ ...p, imageUrl: url }));
+      setStatus({ type: "ok", message: "Imagen de tela subida" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    } finally {
+      setCortinasUploading("");
+    }
+  }
+
+  function addCortinasFabric() {
+    const name = String(cortinasNew.name || "").trim();
+    if (!name) return setStatus({ type: "err", message: "Tela: falta el nombre" });
+    const id = makeId("fabric");
+    const next = {
+      id,
+      name,
+      tag: String(cortinasNew.tag || "").trim(),
+      pricePerM2: toNumber(cortinasNew.pricePerM2),
+      apertureEnabled: !!cortinasNew.apertureEnabled,
+      active: cortinasNew.active !== false,
+      imageUrl: String(cortinasNew.imageUrl || ""),
+    };
+    setCortinasDraft((p) => ({ ...p, fabrics: [next, ...(Array.isArray(p.fabrics) ? p.fabrics : [])] }));
+    setCortinasNew({ name: "", tag: "", pricePerM2: "", apertureEnabled: false, active: true, imageUrl: "" });
+    setStatus({ type: "ok", message: "Tela agregada (guardá para aplicar)" });
+  }
+
+  async function onSaveCortinasConfig() {
+    if (cortinasSaving) return;
+    setCortinasSaving(true);
+    setStatus({ type: "", message: "" });
+    try {
+      const existing = categories.find((c) => (c.slug || c.id) === "cortinas");
+      const baseCategory = {
+        name: existing?.name || "Cortinas Roller",
+        tag: existing?.tag || "Black-out · Sun screen",
+        icon: existing?.icon || "blinds",
+        order: existing?.order ?? 0,
+        active: existing?.active !== false,
+      };
+
+      const fabrics = (Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : [])
+        .map((f, i) => ({
+          id: String(f?.id || `fabric_${i}`),
+          name: String(f?.name || "").trim(),
+          tag: String(f?.tag || "").trim(),
+          pricePerM2: toNumber(f?.pricePerM2),
+          apertureEnabled: !!f?.apertureEnabled,
+          active: f?.active !== false,
+          imageUrl: String(f?.imageUrl || ""),
+        }))
+        .filter((f) => f.name.length > 0 && f.pricePerM2 > 0);
+
+      const pricing = {
+        installPrice: toNumber(cortinasDraft?.pricing?.installPrice),
+        chainMetalPrice: toNumber(cortinasDraft?.pricing?.chainMetalPrice),
+        systemBlackPrice: toNumber(cortinasDraft?.pricing?.systemBlackPrice),
+        zocaloPrice: toNumber(cortinasDraft?.pricing?.zocaloPrice),
+        extraHeightThresholdCm: toNumber(cortinasDraft?.pricing?.extraHeightThresholdCm || 220) || 220,
+        extraHeightPrice: toNumber(cortinasDraft?.pricing?.extraHeightPrice),
+      };
+
+      await upsertCategory("cortinas", {
+        ...baseCategory,
+        cortinasConfig: { fabrics, pricing },
+      });
+      setStatus({ type: "ok", message: "Configuración de cortinas guardada" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    } finally {
+      setCortinasSaving(false);
+    }
   }
 
   async function onSaveCategory(e) {
@@ -520,6 +731,7 @@ export function Admin() {
           {[
             { k: "products", l: "Productos" },
             { k: "categories", l: "Categorías" },
+            { k: "cortinas", l: "Cortinas" },
             { k: "orders", l: "Pedidos" },
             { k: "leads", l: "Consultas" },
           ].map((t) => (
@@ -852,6 +1064,162 @@ export function Admin() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === "cortinas" && (
+          <div className="admin__grid" style={{ marginTop: 16 }}>
+            <div className="admin__panel">
+              <div className="admin__panel-head">
+                <b>Cortinas · Configuración</b>
+                <span className="muted">{(Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : []).length} telas</span>
+              </div>
+              <div style={{ padding: 14, display: "grid", gap: 14 }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                  <button className="btn btn--accent btn--sm" onClick={onSaveCortinasConfig} disabled={cortinasSaving}>
+                    {cortinasSaving ? "Guardando..." : "Guardar"}
+                  </button>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    Se guarda en categories/cortinas → cortinasConfig
+                  </span>
+                </div>
+
+                <div style={{ border: "1px solid var(--line-strong)", borderRadius: 12, padding: 12, background: "var(--bg)" }}>
+                  <b>Precios adicionales</b>
+                  <div className="field-grid" style={{ marginTop: 12 }}>
+                    <Field label="Precio instalación">
+                      <input type="number" value={cortinasDraft.pricing.installPrice} onChange={(e) => updateCortinasPricing({ installPrice: toNumber(e.target.value) })} />
+                    </Field>
+                    <Field label="Cadena metálica">
+                      <input type="number" value={cortinasDraft.pricing.chainMetalPrice} onChange={(e) => updateCortinasPricing({ chainMetalPrice: toNumber(e.target.value) })} />
+                    </Field>
+                    <Field label="Sistema negro">
+                      <input type="number" value={cortinasDraft.pricing.systemBlackPrice} onChange={(e) => updateCortinasPricing({ systemBlackPrice: toNumber(e.target.value) })} />
+                    </Field>
+                    <Field label="Zócalo">
+                      <input type="number" value={cortinasDraft.pricing.zocaloPrice} onChange={(e) => updateCortinasPricing({ zocaloPrice: toNumber(e.target.value) })} />
+                    </Field>
+                    <Field label="Alto extra desde (cm)">
+                      <input type="number" value={cortinasDraft.pricing.extraHeightThresholdCm} onChange={(e) => updateCortinasPricing({ extraHeightThresholdCm: toNumber(e.target.value) || 220 })} />
+                    </Field>
+                    <Field label="Precio extra alto">
+                      <input type="number" value={cortinasDraft.pricing.extraHeightPrice} onChange={(e) => updateCortinasPricing({ extraHeightPrice: toNumber(e.target.value) })} />
+                    </Field>
+                  </div>
+                </div>
+
+                <div style={{ border: "1px solid var(--line-strong)", borderRadius: 12, padding: 12, background: "var(--bg)" }}>
+                  <b>Nueva tela</b>
+                  <div className="field-grid" style={{ marginTop: 12 }}>
+                    <Field label="Nombre">
+                      <input value={cortinasNew.name} onChange={(e) => setCortinasNew((p) => ({ ...p, name: e.target.value }))} placeholder="Ej: Sun Screen" />
+                    </Field>
+                    <Field label="Tag">
+                      <input value={cortinasNew.tag} onChange={(e) => setCortinasNew((p) => ({ ...p, tag: e.target.value }))} placeholder="Ej: Filtro UV" />
+                    </Field>
+                    <Field label="Precio / m²">
+                      <input value={cortinasNew.pricePerM2} inputMode="numeric" onChange={(e) => setCortinasNew((p) => ({ ...p, pricePerM2: e.target.value }))} placeholder="32000" />
+                    </Field>
+                    <Field label="Apertura">
+                      <select value={cortinasNew.apertureEnabled ? "1" : "0"} onChange={(e) => setCortinasNew((p) => ({ ...p, apertureEnabled: e.target.value === "1" }))}>
+                        <option value="0">No</option>
+                        <option value="1">Sí</option>
+                      </select>
+                    </Field>
+                    <Field label="Activa">
+                      <select value={cortinasNew.active ? "1" : "0"} onChange={(e) => setCortinasNew((p) => ({ ...p, active: e.target.value === "1" }))}>
+                        <option value="1">Sí</option>
+                        <option value="0">No</option>
+                      </select>
+                    </Field>
+                    <div style={{ display: "grid", gap: 8 }}>
+                      <span className="muted" style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
+                        Imagen
+                      </span>
+                      <label className="btn btn--ghost btn--sm" style={{ cursor: "pointer", justifyContent: "center" }}>
+                        {cortinasUploading === "new" ? "Subiendo..." : "Subir imagen"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: "none" }}
+                          disabled={cortinasUploading === "new"}
+                          onChange={(e) => onUploadCortinasNewImage(e.target.files?.[0])}
+                        />
+                      </label>
+                      {cortinasNew.imageUrl ? (
+                        <div className="admin__thumb" style={{ width: 120, height: 80, backgroundImage: `url(${cortinasNew.imageUrl})` }} />
+                      ) : (
+                        <span className="muted" style={{ fontSize: 12 }}>
+                          (opcional)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+                    <button type="button" className="btn btn--ghost btn--sm" onClick={addCortinasFabric}>
+                      + Agregar tela
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="admin__panel">
+              <div className="admin__panel-head">
+                <b>Telas</b>
+                <span className="muted">{(Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : []).length}</span>
+              </div>
+              <div className="admin__list">
+                {(Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : []).map((f) => (
+                  <div key={f.id} className="admin__row" style={{ alignItems: "flex-start" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, flex: 1 }}>
+                      <div className="admin__thumb" style={{ backgroundImage: `url(${f.imageUrl || ""})` }} />
+                      <div style={{ display: "grid", gap: 10, width: "100%" }}>
+                        <div className="field-grid">
+                          <Field label="Nombre">
+                            <input value={f.name || ""} onChange={(e) => updateCortinasFabric(f.id, { name: e.target.value })} />
+                          </Field>
+                          <Field label="Precio / m²">
+                            <input type="number" value={toNumber(f.pricePerM2)} onChange={(e) => updateCortinasFabric(f.id, { pricePerM2: toNumber(e.target.value) })} />
+                          </Field>
+                        </div>
+                        <Field label="Tag">
+                          <input value={f.tag || ""} onChange={(e) => updateCortinasFabric(f.id, { tag: e.target.value })} />
+                        </Field>
+                        <div className="field-grid">
+                          <Field label="Apertura">
+                            <select value={f.apertureEnabled ? "1" : "0"} onChange={(e) => updateCortinasFabric(f.id, { apertureEnabled: e.target.value === "1" })}>
+                              <option value="0">No</option>
+                              <option value="1">Sí</option>
+                            </select>
+                          </Field>
+                          <Field label="Activa">
+                            <select value={f.active !== false ? "1" : "0"} onChange={(e) => updateCortinasFabric(f.id, { active: e.target.value === "1" })}>
+                              <option value="1">Sí</option>
+                              <option value="0">No</option>
+                            </select>
+                          </Field>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <label className="btn btn--ghost btn--sm" style={{ cursor: "pointer", justifyContent: "center" }}>
+                            {cortinasUploading === f.id ? "Subiendo..." : "Subir imagen"}
+                            <input type="file" accept="image/*" style={{ display: "none" }} disabled={cortinasUploading === f.id} onChange={(e) => onUploadCortinasFabricImage(f.id, e.target.files?.[0])} />
+                          </label>
+                          <button type="button" className="btn btn--ghost btn--sm" onClick={() => removeCortinasFabric(f.id)}>
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {(Array.isArray(cortinasDraft.fabrics) ? cortinasDraft.fabrics : []).length === 0 && (
+                  <div style={{ padding: 14 }} className="muted">
+                    Sin telas.
+                  </div>
+                )}
               </div>
             </div>
           </div>
