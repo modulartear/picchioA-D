@@ -25,7 +25,7 @@ function useTheme() {
 export function Header() {
   const nav = useNavigate();
   const loc = useLocation();
-  const { cartCount, setCartOpen, showToast } = useCart();
+  const { cartCount, setCartOpen, setCotizadorOpen, showToast } = useCart();
   const { theme, setTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -36,7 +36,7 @@ export function Header() {
   const navItems = useMemo(
     () => [
       { label: "Productos", path: "/cat/productos" },
-      { label: "A medida", path: "/cat/a-medida" },
+      { label: "A medida", path: "/#cotizador" },
       { label: "Cortinas", path: "/#cortinas-calc" },
       { label: "Proyectos", path: "/#proyectos" },
       { label: "Nosotros", path: "/#nosotros" },
@@ -46,6 +46,14 @@ export function Header() {
   );
 
   function goToAnchor(hash) {
+    if (hash === "#cotizador") {
+      if (loc.pathname !== "/") {
+        nav("/#cotizador");
+        return;
+      }
+      setCotizadorOpen(true);
+      return;
+    }
     if (loc.pathname !== "/") {
       nav("/" + hash);
       return;

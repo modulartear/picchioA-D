@@ -20,10 +20,10 @@ export function Footer() {
             <ul>
               <li>
                 <a
-                  href="/cat/a-medida"
+                  href="/#cotizador"
                   onClick={(e) => {
                     e.preventDefault();
-                    nav("/cat/a-medida");
+                    nav("/#cotizador");
                   }}
                 >
                   A medida

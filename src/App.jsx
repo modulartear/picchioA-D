@@ -18,12 +18,16 @@ import { Product } from "./pages/Product";
 
 function Shell() {
   const loc = useLocation();
-  const { toast } = useCart();
+  const { toast, setCotizadorOpen } = useCart();
   const isAdmin = loc.pathname.startsWith("/admin");
 
   function tryScrollToHash(hash) {
     const id = String(hash || "").replace("#", "").trim();
     if (!id) return false;
+    if (id === "cotizador") {
+      setCotizadorOpen(true);
+      return true;
+    }
     const el = document.getElementById(id);
     if (!el) return false;
     window.scrollTo({ top: el.offsetTop - 80, behavior: "smooth" });
