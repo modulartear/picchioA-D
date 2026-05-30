@@ -71,6 +71,7 @@ export function Admin() {
       active: true,
       colors: [],
       specs: {},
+      sections: [],
     }),
     [],
   );
@@ -78,6 +79,9 @@ export function Admin() {
   const [uploading, setUploading] = useState(false);
   const [colorName, setColorName] = useState("");
   const [colorHex, setColorHex] = useState("#111111");
+
+  const defaultEnvioText = "Envío gratis en Venado Tuerto. Envío a todo el país coordinado por transporte propio o flete.";
+  const defaultGarantiaText = "Garantía Picchio: 1 año en tapicería, 2 años en estructura y 5 años en herrajes.";
 
   const palette = useMemo(
     () => [
@@ -215,6 +219,14 @@ export function Admin() {
     return ("#" + s).toUpperCase();
   }
 
+  function makeSectionId() {
+    try {
+      return crypto.randomUUID();
+    } catch (_) {
+      return `sec_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    }
+  }
+
   function addColor(next) {
     const name = String(next?.name || "").trim();
     const hex = normalizeHex(next?.hex);
@@ -236,12 +248,55 @@ export function Admin() {
     });
   }
 
+  function addSection(kind = "text") {
+    setProdDraft((p) => {
+      const existing = Array.isArray(p.sections) ? p.sections : [];
+      const next =
+        kind === "specs"
+          ? { id: makeSectionId(), type: "specs", title: "Especificaciones" }
+          : { id: makeSectionId(), type: "text", title: "", body: "" };
+      return { ...p, sections: [...existing, next] };
+    });
+  }
+
+  function removeSection(id) {
+    setProdDraft((p) => {
+      const existing = Array.isArray(p.sections) ? p.sections : [];
+      return { ...p, sections: existing.filter((s) => s?.id !== id) };
+    });
+  }
+
+  function moveSection(id, dir) {
+    setProdDraft((p) => {
+      const existing = Array.isArray(p.sections) ? p.sections : [];
+      const idx = existing.findIndex((s) => s?.id === id);
+      if (idx < 0) return p;
+      const nextIdx = dir === "up" ? idx - 1 : idx + 1;
+      if (nextIdx < 0 || nextIdx >= existing.length) return p;
+      const next = [...existing];
+      const tmp = next[idx];
+      next[idx] = next[nextIdx];
+      next[nextIdx] = tmp;
+      return { ...p, sections: next };
+    });
+  }
+
   async function onSaveProduct(e) {
     e?.preventDefault();
     setStatus({ type: "", message: "" });
     if (!prodDraft.id || !prodDraft.name) return setStatus({ type: "err", message: "ID y nombre son obligatorios" });
 
     const specs = prodDraft?.specs && typeof prodDraft.specs === "object" ? prodDraft.specs : {};
+    const sectionsRaw = Array.isArray(prodDraft.sections) ? prodDraft.sections : [];
+    const sectionsClean = sectionsRaw
+      .map((s) => {
+        const id = String(s?.id || "").trim() || makeSectionId();
+        const type = s?.type === "specs" ? "specs" : "text";
+        const title = String(s?.title || "").trim();
+        const body = String(s?.body || "");
+        return { id, type, title, body };
+      })
+      .filter((s) => s.title.length > 0);
 
     try {
       const catName = deriveCatName(prodDraft.cat);
@@ -270,6 +325,7 @@ export function Admin() {
         active: !!prodDraft.active,
         colors: Array.isArray(prodDraft.colors) ? prodDraft.colors : [],
         specs,
+        sections: sectionsClean.length > 0 ? sectionsClean : deleteField(),
       });
       setProdDraft(blankProduct);
       setStatus({ type: "ok", message: "Producto guardado" });
@@ -293,6 +349,15 @@ export function Admin() {
       active: p.active !== false,
       colors: Array.isArray(p.colors) ? p.colors : [],
       specs: p?.specs && typeof p.specs === "object" ? p.specs : {},
+      sections:
+        Array.isArray(p.sections) && p.sections.length > 0
+          ? p.sections
+          : [
+              { id: makeSectionId(), type: "text", title: "Detalles del producto", body: p.desc || "" },
+              ...(p?.specs && Object.keys(p.specs).length > 0 ? [{ id: makeSectionId(), type: "specs", title: "Especificaciones" }] : []),
+              { id: makeSectionId(), type: "text", title: "Envíos y devoluciones", body: defaultEnvioText },
+              { id: makeSectionId(), type: "text", title: "Garantía", body: defaultGarantiaText },
+            ],
     });
     setColorName("");
     setColorHex("#111111");
@@ -663,6 +728,93 @@ export function Admin() {
                       </div>
                     </div>
                   </Field>
+
+                  <Field label="Secciones (Acordeón)">
+                    <div style={{ display: "grid", gap: 12 }}>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button type="button" className="btn btn--ghost btn--sm" onClick={() => addSection("text")}>
+                          + Texto
+                        </button>
+                        <button type="button" className="btn btn--ghost btn--sm" onClick={() => addSection("specs")}>
+                          + Especificaciones
+                        </button>
+                      </div>
+
+                      <div style={{ display: "grid", gap: 12 }}>
+                        {(Array.isArray(prodDraft.sections) ? prodDraft.sections : []).map((s, idx) => (
+                          <div key={s.id || idx} style={{ border: "1px solid var(--line-strong)", borderRadius: 12, padding: 12, background: "var(--bg)" }}>
+                            <div style={{ display: "grid", gap: 10 }}>
+                              <div className="field-grid">
+                                <Field label="Título">
+                                  <input
+                                    value={s.title || ""}
+                                    onChange={(e) =>
+                                      setProdDraft((p) => {
+                                        const arr = Array.isArray(p.sections) ? [...p.sections] : [];
+                                        arr[idx] = { ...arr[idx], title: e.target.value };
+                                        return { ...p, sections: arr };
+                                      })
+                                    }
+                                  />
+                                </Field>
+                                <Field label="Tipo">
+                                  <select
+                                    value={s.type === "specs" ? "specs" : "text"}
+                                    onChange={(e) =>
+                                      setProdDraft((p) => {
+                                        const arr = Array.isArray(p.sections) ? [...p.sections] : [];
+                                        const nextType = e.target.value === "specs" ? "specs" : "text";
+                                        arr[idx] = { ...arr[idx], type: nextType };
+                                        return { ...p, sections: arr };
+                                      })
+                                    }
+                                  >
+                                    <option value="text">Texto</option>
+                                    <option value="specs">Especificaciones</option>
+                                  </select>
+                                </Field>
+                              </div>
+
+                              {(s.type === "specs" ? "specs" : "text") === "text" && (
+                                <Field label="Contenido">
+                                  <textarea
+                                    rows={4}
+                                    value={s.body || ""}
+                                    onChange={(e) =>
+                                      setProdDraft((p) => {
+                                        const arr = Array.isArray(p.sections) ? [...p.sections] : [];
+                                        arr[idx] = { ...arr[idx], body: e.target.value };
+                                        return { ...p, sections: arr };
+                                      })
+                                    }
+                                  />
+                                </Field>
+                              )}
+
+                              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                <button type="button" className="btn btn--ghost btn--sm" onClick={() => moveSection(s.id, "up")} disabled={idx === 0}>
+                                  ↑ Subir
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn--ghost btn--sm"
+                                  onClick={() => moveSection(s.id, "down")}
+                                  disabled={idx === (Array.isArray(prodDraft.sections) ? prodDraft.sections.length : 0) - 1}
+                                >
+                                  ↓ Bajar
+                                </button>
+                                <button type="button" className="btn btn--ghost btn--sm" onClick={() => removeSection(s.id)}>
+                                  Eliminar
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {(Array.isArray(prodDraft.sections) ? prodDraft.sections : []).length === 0 && <span className="muted">Sin secciones</span>}
+                      </div>
+                    </div>
+                  </Field>
+
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                     <button className="btn btn--accent">Guardar</button>
                     <button type="button" className="btn btn--ghost" onClick={() => setProdDraft(blankProduct)}>

@@ -21,17 +21,73 @@ export function Product() {
 
   const [color, setColor] = useState(product?.colors?.[0]);
   const [qty, setQty] = useState(1);
-  const [accordion, setAccordion] = useState("desc");
+  const [accordion, setAccordion] = useState("");
   const [imgIdx, setImgIdx] = useState(0);
+
+  const defaultEnvioText = "Envío gratis en Venado Tuerto. Envío a todo el país coordinado por transporte propio o flete.";
+  const defaultGarantiaText = "Garantía Picchio: 1 año en tapicería, 2 años en estructura y 5 años en herrajes.";
+
+  const specsEntries = useMemo(() => Object.entries(product?.specs || {}), [product]);
+
+  const accordionItems = useMemo(() => {
+    if (!product) return [];
+
+    const renderSpecs = () => (
+      <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+        {specsEntries.map(([k, v]) => (
+          <li key={String(k)} style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
+            <span style={{ color: "var(--muted)", textTransform: "capitalize" }}>{String(k).replace(/_/g, " ")}</span>
+            <span style={{ color: "var(--ink)", textAlign: "right" }}>{String(v)}</span>
+          </li>
+        ))}
+      </ul>
+    );
+
+    const customRaw = Array.isArray(product.sections) ? product.sections : [];
+    const customClean = customRaw
+      .map((s, i) => ({
+        key: String(s?.id || `sec_${i}`),
+        type: s?.type === "specs" ? "specs" : "text",
+        label: String(s?.title || "").trim(),
+        body: String(s?.body || ""),
+      }))
+      .filter((s) => s.label.length > 0);
+
+    const customItems = customClean.flatMap((s) => {
+      if (s.type === "specs") {
+        if (specsEntries.length === 0) return [];
+        return [{ key: s.key, label: s.label, body: renderSpecs() }];
+      }
+      return [
+        {
+          key: s.key,
+          label: s.label,
+          body: <p style={{ whiteSpace: "pre-wrap" }}>{s.body}</p>,
+        },
+      ];
+    });
+
+    if (customItems.length > 0) return customItems;
+
+    return [
+      { key: "desc", label: "Detalles del producto", body: <p style={{ whiteSpace: "pre-wrap" }}>{product.desc}</p> },
+      ...(specsEntries.length > 0 ? [{ key: "specs", label: "Especificaciones", body: renderSpecs() }] : []),
+      { key: "envio", label: "Envíos y devoluciones", body: <p style={{ whiteSpace: "pre-wrap" }}>{defaultEnvioText}</p> },
+      { key: "garantia", label: "Garantía", body: <p style={{ whiteSpace: "pre-wrap" }}>{defaultGarantiaText}</p> },
+    ];
+  }, [product, specsEntries, defaultEnvioText, defaultGarantiaText]);
 
   useEffect(() => {
     if (product) {
       setColor(product.colors?.[0]);
       setQty(1);
       setImgIdx(0);
+      setAccordion((prev) => prev || "");
+      const firstKey = (accordionItems[0]?.key || "").trim();
+      setAccordion(firstKey);
     }
     window.scrollTo({ top: 0, behavior: "instant" });
-  }, [id, product]);
+  }, [id, product, accordionItems]);
 
   const gallery = useMemo(() => {
     const main = product?.imageUrl || product?.image;
@@ -175,25 +231,7 @@ export function Product() {
             </div>
 
             <div className="pdp__accordion">
-              {[
-                { key: "desc", label: "Detalles del producto", body: <p>{product.desc}</p> },
-                {
-                  key: "specs",
-                  label: "Especificaciones",
-                  body: (
-                    <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-                      {Object.entries(product.specs || {}).map(([k, v]) => (
-                        <li key={k} style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
-                          <span style={{ color: "var(--muted)", textTransform: "capitalize" }}>{String(k).replace(/_/g, " ")}</span>
-                          <span style={{ color: "var(--ink)", textAlign: "right" }}>{String(v)}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ),
-                },
-                { key: "envio", label: "Envíos y devoluciones", body: <p>Envío gratis en Venado Tuerto. Envío a todo el país coordinado por transporte propio o flete.</p> },
-                { key: "garantia", label: "Garantía", body: <p>Garantía Picchio: 1 año en tapicería, 2 años en estructura y 5 años en herrajes.</p> },
-              ].map((a) => (
+              {accordionItems.map((a) => (
                 <div key={a.key} className={"acc-item" + (accordion === a.key ? " open" : "")}>
                   <button className="acc-head" onClick={() => setAccordion(accordion === a.key ? "" : a.key)}>
                     <span>{a.label}</span>
