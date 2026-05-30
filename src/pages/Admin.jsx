@@ -463,6 +463,18 @@ export function Admin() {
     }
   }, [authed, isAdmin, loading, adminsDoc.loading]);
 
+  function describeLoginError(err) {
+    const code = err?.code ? String(err.code) : "";
+    if (code === "auth/invalid-credential") return "Email o contraseña incorrectos.";
+    if (code === "auth/wrong-password") return "Contraseña incorrecta.";
+    if (code === "auth/user-not-found") return "Ese usuario no existe. Primero hay que crearlo en Firebase Auth.";
+    if (code === "auth/too-many-requests") return "Demasiados intentos. Esperá unos minutos y probá de nuevo.";
+    if (code === "auth/network-request-failed") return "Error de red. Probá de nuevo.";
+    if (code === "auth/operation-not-allowed") return "Email/Contraseña está deshabilitado en Firebase Auth.";
+    const msg = err?.message ? String(err.message) : "";
+    return msg || "No se pudo iniciar sesión.";
+  }
+
   async function onLogin(e) {
     e.preventDefault();
     if (logging) return;
@@ -473,7 +485,7 @@ export function Admin() {
       setEmail("");
       setPass("");
     } catch (err) {
-      setStatus({ type: "err", message: "No se pudo iniciar sesión" });
+      setStatus({ type: "err", message: describeLoginError(err) });
     } finally {
       setLogging(false);
     }
