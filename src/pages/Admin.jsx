@@ -231,6 +231,19 @@ export function Admin() {
     return code || message || "Error";
   }
 
+  function describeCreateAdminError(err) {
+    const code = err?.code ? String(err.code) : "";
+    if (code === "auth/email-already-in-use") return "Ese email ya existe. Usá “Habilitar como admin” o elegí otro email.";
+    if (code === "auth/invalid-email") return "El email no es válido.";
+    if (code === "auth/weak-password") return "La contraseña es muy débil (mínimo 6 caracteres).";
+    if (code === "auth/operation-not-allowed") return "Email/Contraseña está deshabilitado en Firebase Auth.";
+    if (code === "auth/invalid-api-key") return "API Key inválida (revisá VITE_FIREBASE_API_KEY).";
+    if (code === "auth/network-request-failed") return "Error de red. Probá nuevamente.";
+    const msg = err?.message ? String(err.message) : "";
+    if (msg) return msg;
+    return "No se pudo crear el usuario admin.";
+  }
+
   function toNumber(v) {
     const n = typeof v === "number" ? v : parseFloat(String(v ?? "").replace(",", "."));
     return Number.isFinite(n) ? n : 0;
@@ -521,7 +534,7 @@ export function Admin() {
       setNewAdminPass("");
       setStatus({ type: "ok", message: "Usuario admin creado" });
     } catch (err) {
-      setStatus({ type: "err", message: "No se pudo crear el usuario admin" });
+      setStatus({ type: "err", message: describeCreateAdminError(err) });
     } finally {
       setCreatingAdmin(false);
     }
@@ -1190,6 +1203,14 @@ export function Admin() {
                       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                         <button type="button" className="btn btn--accent" onClick={onCreateAdminUser} disabled={creatingAdmin}>
                           {creatingAdmin ? "Creando..." : "Crear admin"}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn--ghost"
+                          onClick={() => addAdmin("", String(newAdminEmail || "").trim().toLowerCase())}
+                          disabled={!String(newAdminEmail || "").trim()}
+                        >
+                          Habilitar como admin
                         </button>
                         <button
                           type="button"
