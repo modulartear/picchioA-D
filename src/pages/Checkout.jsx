@@ -1,12 +1,25 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "../components/icons";
 import { useCart } from "../context/CartContext";
+import { useSiteContent } from "../hooks/useCatalog";
 import { createOrder } from "../services/orders";
 
 export function Checkout() {
   const nav = useNavigate();
   const { items, clearCart, showToast } = useCart();
+  const site = useSiteContent();
+  const shippingOptions = useMemo(() => {
+    const raw = site.data?.checkout?.shippingOptions;
+    const list = Array.isArray(raw) ? raw : [];
+    return list.filter((x) => x?.active !== false);
+  }, [site.data]);
+  const paymentOptions = useMemo(() => {
+    const raw = site.data?.checkout?.paymentOptions;
+    const list = Array.isArray(raw) ? raw : [];
+    return list.filter((x) => x?.active !== false);
+  }, [site.data]);
+
   const [step, setStep] = useState(1);
   const [orderId, setOrderId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -31,6 +44,22 @@ export function Checkout() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [step]);
+
+  useEffect(() => {
+    if (shippingOptions.length === 0) return;
+    setData((d) => {
+      if (shippingOptions.some((s) => s.id === d.envio)) return d;
+      return { ...d, envio: shippingOptions[0].id };
+    });
+  }, [shippingOptions]);
+
+  useEffect(() => {
+    if (paymentOptions.length === 0) return;
+    setData((d) => {
+      if (paymentOptions.some((p) => p.id === d.pago)) return d;
+      return { ...d, pago: paymentOptions[0].id };
+    });
+  }, [paymentOptions]);
 
   const next = async (e) => {
     e?.preventDefault();
@@ -209,33 +238,19 @@ export function Checkout() {
                 <div className="field-stack fade-in">
                   <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: 28, margin: 0 }}>Envío</h3>
                   <div className="field-stack">
-                    <div className={"opt-card" + (data.envio === "showroom" ? " active" : "")} onClick={() => upd("envio", "showroom")}>
-                      <div className="opt-card__radio" />
-                      <div className="opt-card__body">
-                        <div className="opt-card__title">Retiro en showroom · Sin cargo</div>
-                        <div className="opt-card__desc">Almafuerte 201, Venado Tuerto. Lun a Vie 8:30-12:30 y 16-19:30.</div>
+                    {shippingOptions.map((s) => (
+                      <div key={s.id} className={"opt-card" + (data.envio === s.id ? " active" : "")} onClick={() => upd("envio", s.id)}>
+                        <div className="opt-card__radio" />
+                        <div className="opt-card__body">
+                          <div className="opt-card__title">{s.title}</div>
+                          <div className="opt-card__desc">{s.desc}</div>
+                        </div>
+                        <span className="opt-card__price">{s.priceLabel || ""}</span>
                       </div>
-                      <span className="opt-card__price">Gratis</span>
-                    </div>
-                    <div className={"opt-card" + (data.envio === "local" ? " active" : "")} onClick={() => upd("envio", "local")}>
-                      <div className="opt-card__radio" />
-                      <div className="opt-card__body">
-                        <div className="opt-card__title">Envío en Venado Tuerto</div>
-                        <div className="opt-card__desc">Coordinamos día y horario. Entrega en 24-72hs.</div>
-                      </div>
-                      <span className="opt-card__price">Gratis</span>
-                    </div>
-                    <div className={"opt-card" + (data.envio === "pais" ? " active" : "")} onClick={() => upd("envio", "pais")}>
-                      <div className="opt-card__radio" />
-                      <div className="opt-card__body">
-                        <div className="opt-card__title">Envío a todo el país</div>
-                        <div className="opt-card__desc">Transporte propio o flete. Te confirmamos el costo al cerrar el pedido.</div>
-                      </div>
-                      <span className="opt-card__price">A consultar</span>
-                    </div>
+                    ))}
                   </div>
 
-                  {data.envio !== "showroom" && (
+                  {shippingOptions.find((s) => s.id === data.envio)?.requiresAddress && (
                     <div className="field-stack fade-in">
                       <div className="field">
                         <label>Dirección</label>
@@ -264,16 +279,12 @@ export function Checkout() {
 
                   <h3 style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: 28, margin: "16px 0 0" }}>Forma de pago</h3>
                   <div className="field-stack">
-                    {[
-                      { v: "transferencia", t: "Transferencia bancaria", d: "10% de descuento. Te enviamos los datos al confirmar." },
-                      { v: "efectivo", t: "Efectivo en showroom", d: "5% de descuento sobre el precio de lista." },
-                      { v: "tarjeta", t: "Tarjeta de crédito · Hasta 6 cuotas", d: "Visa, Mastercard, Naranja. Sin interés según promo vigente." },
-                    ].map((p) => (
-                      <div key={p.v} className={"opt-card" + (data.pago === p.v ? " active" : "")} onClick={() => upd("pago", p.v)}>
+                    {paymentOptions.map((p) => (
+                      <div key={p.id} className={"opt-card" + (data.pago === p.id ? " active" : "")} onClick={() => upd("pago", p.id)}>
                         <div className="opt-card__radio" />
                         <div className="opt-card__body">
-                          <div className="opt-card__title">{p.t}</div>
-                          <div className="opt-card__desc">{p.d}</div>
+                          <div className="opt-card__title">{p.title}</div>
+                          <div className="opt-card__desc">{p.desc}</div>
                         </div>
                       </div>
                     ))}
@@ -319,7 +330,7 @@ export function Checkout() {
             </div>
             <div className="summary__row">
               <span>Envío</span>
-              <span>{data.envio === "showroom" || data.envio === "local" ? "Gratis" : "A consultar"}</span>
+              <span>{shippingOptions.find((s) => s.id === data.envio)?.priceLabel || ""}</span>
             </div>
             {(() => {
               const priced = items.filter((i) => i.priceAmount);

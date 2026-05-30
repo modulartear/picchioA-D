@@ -56,6 +56,55 @@ export const DEFAULT_IMAGES = {
     "https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&w=900&q=80",
 };
 
+export const DEFAULT_CHECKOUT = {
+  shippingOptions: [
+    {
+      id: "showroom",
+      title: "Retiro en showroom · Sin cargo",
+      desc: "Almafuerte 201, Venado Tuerto. Lun a Vie 8:30-12:30 y 16-19:30.",
+      priceLabel: "Gratis",
+      requiresAddress: false,
+      active: true,
+    },
+    {
+      id: "local",
+      title: "Envío en Venado Tuerto",
+      desc: "Coordinamos día y horario. Entrega en 24-72hs.",
+      priceLabel: "Gratis",
+      requiresAddress: true,
+      active: true,
+    },
+    {
+      id: "pais",
+      title: "Envío a todo el país",
+      desc: "Transporte propio o flete. Te confirmamos el costo al cerrar el pedido.",
+      priceLabel: "A consultar",
+      requiresAddress: true,
+      active: true,
+    },
+  ],
+  paymentOptions: [
+    {
+      id: "transferencia",
+      title: "Transferencia bancaria",
+      desc: "10% de descuento. Te enviamos los datos al confirmar.",
+      active: true,
+    },
+    {
+      id: "efectivo",
+      title: "Efectivo en showroom",
+      desc: "5% de descuento sobre el precio de lista.",
+      active: true,
+    },
+    {
+      id: "tarjeta",
+      title: "Tarjeta de crédito · Hasta 6 cuotas",
+      desc: "Visa, Mastercard, Naranja. Sin interés según promo vigente.",
+      active: true,
+    },
+  ],
+};
+
 export async function fetchCategories() {
   assertConfigured();
   const q = query(collection(db, "categories"), orderBy("order", "asc"));
@@ -102,7 +151,13 @@ export async function fetchTestimonials() {
 export async function fetchSiteContent() {
   assertConfigured();
   const snap = await getDoc(doc(db, "site", "content"));
-  if (!snap.exists()) return { img: DEFAULT_IMAGES };
+  if (!snap.exists()) return { img: DEFAULT_IMAGES, checkout: DEFAULT_CHECKOUT };
   const data = snap.data() || {};
-  return { img: { ...DEFAULT_IMAGES, ...(data.img || {}) } };
+  const checkoutRaw = data.checkout && typeof data.checkout === "object" ? data.checkout : {};
+  const shippingOptions = Array.isArray(checkoutRaw.shippingOptions) ? checkoutRaw.shippingOptions : DEFAULT_CHECKOUT.shippingOptions;
+  const paymentOptions = Array.isArray(checkoutRaw.paymentOptions) ? checkoutRaw.paymentOptions : DEFAULT_CHECKOUT.paymentOptions;
+  return {
+    img: { ...DEFAULT_IMAGES, ...(data.img || {}) },
+    checkout: { shippingOptions, paymentOptions },
+  };
 }

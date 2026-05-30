@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  DEFAULT_CHECKOUT,
   fetchCategories,
   fetchFeaturedProducts,
   fetchProductById,
@@ -109,7 +110,7 @@ export function useProduct(id) {
 }
 
 export function useSiteContent() {
-  const [state, setState] = useState({ loading: true, data: { img: {} }, error: "" });
+  const [state, setState] = useState({ loading: true, data: { img: {}, checkout: DEFAULT_CHECKOUT }, error: "" });
 
   useEffect(() => {
     let alive = true;
@@ -120,7 +121,7 @@ export function useSiteContent() {
       })
       .catch((e) => {
         if (!alive) return;
-        setState({ loading: false, data: { img: {} }, error: describeError(e) });
+        setState({ loading: false, data: { img: {}, checkout: DEFAULT_CHECKOUT }, error: describeError(e) });
       });
     return () => {
       alive = false;
