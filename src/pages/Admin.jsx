@@ -359,7 +359,14 @@ export function Admin() {
   function createCortinasColor() {
     const id = makeId("color");
     const next = { id, name: "Nuevo color", imageUrl: "", active: true };
-    setCortinasDraft((p) => ({ ...p, colors: [next, ...(Array.isArray(p.colors) ? p.colors : [])] }));
+    setCortinasDraft((p) => {
+      const colors = [next, ...(Array.isArray(p.colors) ? p.colors : [])];
+      const fabrics = (Array.isArray(p.fabrics) ? p.fabrics : []).map((f) => ({
+        ...f,
+        colorIds: (Array.isArray(f.colorIds) ? f.colorIds : []).filter((x) => String(x) !== id),
+      }));
+      return { ...p, colors, fabrics };
+    });
     setSelectedColorId(id);
     setCortinasSubtab("colores");
     setStatus({ type: "ok", message: "Color creado (completá los datos y guardá)" });
@@ -1300,10 +1307,28 @@ export function Admin() {
                                   <button
                                     key={c.id}
                                     type="button"
-                                    className={"btn btn--ghost btn--sm" + (isSelected ? " chip active" : "")}
+                                    className={"btn btn--ghost btn--sm" + (isSelected ? " active" : "")}
                                     onClick={() => toggleCortinasFabricColor(f.id, c.id)}
                                     style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
                                   >
+                                    <span
+                                      style={{
+                                        width: 14,
+                                        height: 14,
+                                        borderRadius: 4,
+                                        border: "1px solid var(--line)",
+                                        background: isSelected ? "var(--accent)" : "transparent",
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        color: isSelected ? "var(--accent-ink)" : "transparent",
+                                        fontSize: 12,
+                                        fontWeight: 800,
+                                        lineHeight: 1,
+                                      }}
+                                    >
+                                      ✓
+                                    </span>
                                     <span
                                       style={{
                                         width: 14,
