@@ -196,7 +196,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
           <br />
           <em>en vivo.</em>
         </h3>
-        <p className="cortcalc__intro">Poné las medidas y el tipo de tela. El precio estimado se actualiza al instante.</p>
+        <p className="cortcalc__intro">Poné las medidas y el tipo de tela. El total se actualiza al instante.</p>
       </div>
 
       <div className="cortcalc__body">
@@ -209,13 +209,14 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
                   <span
                     style={{
                       width: "100%",
-                      height: 44,
+                      height: 96,
                       borderRadius: 10,
                       border: "1px solid var(--line)",
                       background: "var(--surface-2)",
                       backgroundImage: opt.imageUrl ? `url(${opt.imageUrl})` : "none",
-                      backgroundSize: "cover",
+                      backgroundSize: "contain",
                       backgroundPosition: "center",
+                      backgroundRepeat: "no-repeat",
                       marginBottom: 10,
                       display: "block",
                     }}
@@ -407,12 +408,8 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
           </div>
 
           <div className="cortcalc__total">
-            <div className="cortcalc__total-lbl">Precio estimado</div>
+            <div className="cortcalc__total-lbl">Total</div>
             <div className="cortcalc__total-num">{fmt(total)}</div>
-            <div className="cortcalc__total-hint">
-              + IVA. {includeInstall ? "Incluye" : "No incluye"} instalación.
-              {!configLoaded && " (cargando configuración)"}
-            </div>
           </div>
 
           <button className="btn btn--accent btn--lg btn--block" onClick={handleAdd} disabled={added}>
