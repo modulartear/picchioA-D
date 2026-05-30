@@ -21,7 +21,7 @@ export const DEFAULT_IMAGES = {
   aboutShop:
     "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?auto=format&fit=crop&w=1400&q=80",
   aMedida:
-    "https://firebasestorage.googleapis.com/v0/b/picchio-f4d60.firebasestorage.app/o/site%2F1.png?alt=media&token=2830d240-b695-446d-b480-0c4654209f0d",
+    "https://firebasestorage.googleapis.com/v0/b/picchio-f4d60.firebasestorage.app/o/site%2F2.png?alt=media&token=f271961a-59dd-43f7-bbf6-03d02de69f3e",
   proj1:
     "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=80",
   proj2:
