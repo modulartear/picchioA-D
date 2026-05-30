@@ -88,7 +88,6 @@ export function Admin() {
           name: "Sun Screen",
           tag: "Filtro UV · Visión hacia afuera",
           pricePerM2: 32000,
-          apertureEnabled: true,
           active: true,
           imageUrl: "",
         },
@@ -97,7 +96,6 @@ export function Admin() {
           name: "Black-Out",
           tag: "100% opaca · Oscurece totalmente",
           pricePerM2: 38000,
-          apertureEnabled: false,
           active: true,
           imageUrl: "",
         },
@@ -106,7 +104,6 @@ export function Admin() {
           name: "Sistema Doble",
           tag: "Screen + Black-Out en un solo sistema",
           pricePerM2: 75000,
-          apertureEnabled: false,
           active: true,
           imageUrl: "",
         },
@@ -217,7 +214,6 @@ export function Admin() {
               name: String(f?.name || f?.label || "").trim(),
               tag: String(f?.tag || "").trim(),
               pricePerM2: toNumber(f?.pricePerM2),
-              apertureEnabled: !!f?.apertureEnabled,
               active: f?.active !== false,
               imageUrl: String(f?.imageUrl || ""),
               colorIds: Array.isArray(f?.colorIds) ? f.colorIds.map((x) => String(x)) : [],
@@ -345,7 +341,6 @@ export function Admin() {
       name: "Nueva tela",
       tag: "",
       pricePerM2: 0,
-      apertureEnabled: false,
       active: true,
       imageUrl: "",
       colorIds: [],
@@ -422,7 +417,6 @@ export function Admin() {
           name: String(f?.name || "").trim(),
           tag: String(f?.tag || "").trim(),
           pricePerM2: toNumber(f?.pricePerM2),
-          apertureEnabled: !!f?.apertureEnabled,
           active: f?.active !== false,
           imageUrl: String(f?.imageUrl || ""),
           colorIds: Array.isArray(f?.colorIds) ? f.colorIds.map((x) => String(x)) : [],
@@ -1275,12 +1269,6 @@ export function Admin() {
                             <input value={f.tag || ""} onChange={(e) => updateCortinasFabric(f.id, { tag: e.target.value })} />
                           </Field>
                           <div className="field-grid">
-                            <Field label="Apertura">
-                              <select value={f.apertureEnabled ? "1" : "0"} onChange={(e) => updateCortinasFabric(f.id, { apertureEnabled: e.target.value === "1" })}>
-                                <option value="0">No</option>
-                                <option value="1">Sí</option>
-                              </select>
-                            </Field>
                             <Field label="Activa">
                               <select value={f.active !== false ? "1" : "0"} onChange={(e) => updateCortinasFabric(f.id, { active: e.target.value === "1" })}>
                                 <option value="1">Sí</option>

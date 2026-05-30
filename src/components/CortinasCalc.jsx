@@ -19,7 +19,6 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
       tag: "Filtro UV · Visión hacia afuera",
       pricePerM2: 32000,
       desc: "Tela técnica con apertura 5%, 10% o 14%. Filtra el sol manteniendo visibilidad. Ideal para oficinas y livings.",
-      apertureEnabled: true,
       active: true,
       imageUrl: "",
     },
@@ -29,7 +28,6 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
       tag: "100% opaca · Oscurece totalmente",
       pricePerM2: 38000,
       desc: "Bloquea el paso de la luz por completo. Ideal para dormitorios, salas de TV o salas de reunión.",
-      apertureEnabled: false,
       active: true,
       imageUrl: "",
     },
@@ -39,13 +37,11 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
       tag: "Screen + Black-Out en un solo sistema",
       pricePerM2: 75000,
       desc: "Dos cortinas en un mismo soporte: tela técnica de día + black-out para la noche. La opción más versátil.",
-      apertureEnabled: false,
       active: true,
       imageUrl: "",
     },
   ];
 
-  const APERTURAS = ["5% (más oscura)", "10% (estándar)", "14% (más luminosa)"];
   const MOTOR_EXTRA = 95000;
 
   const [config, setConfig] = useState(null);
@@ -54,7 +50,6 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
   const [ancho, setAncho] = useState(150);
   const [alto, setAlto] = useState(180);
   const [tela, setTela] = useState("blackout");
-  const [apertura, setApertura] = useState(APERTURAS[1]);
   const [accion, setAccion] = useState("cadena");
   const [colorId, setColorId] = useState("");
   const [includeInstall, setIncludeInstall] = useState(true);
@@ -93,7 +88,6 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
         label: String(f?.name || f?.label || "").trim(),
         tag: String(f?.tag || "").trim(),
         pricePerM2: toNumber(f?.pricePerM2),
-        apertureEnabled: !!f?.apertureEnabled,
         active: f?.active !== false,
         imageUrl: String(f?.imageUrl || ""),
         colorIds: Array.isArray(f?.colorIds) ? f.colorIds.map((x) => String(x)) : [],
@@ -168,7 +162,6 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
     const desc = [
       `${ancho} × ${alto} cm`,
       area > areaRaw ? "(mín. 1 m²)" : null,
-      t.apertureEnabled ? `Apertura ${apertura.split(" ")[0]}` : null,
       selectedColor ? `Color ${selectedColor.name}` : null,
       accion === "motor" ? "Motorizada" : chainMetal ? "Cadena metálica" : "Cadena estándar",
       includeInstall ? "Incluye instalación" : "Sin instalación",
@@ -288,19 +281,6 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
               </div>
             </div>
           </div>
-
-          {t.apertureEnabled && (
-            <div className="cortcalc__group">
-              <span className="cortcalc__lbl">Apertura del tejido</span>
-              <div className="cortcalc__chips">
-                {APERTURAS.map((a) => (
-                  <button key={a} type="button" className={"chip" + (apertura === a ? " active" : "")} onClick={() => setApertura(a)}>
-                    {a}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           <div className="cortcalc__group">
             <span className="cortcalc__lbl">Accionamiento</span>
