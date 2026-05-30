@@ -144,8 +144,9 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
     };
   }, [config]);
 
-  const areaBase = Math.max(0, (Number(ancho) || 0) / 100) * Math.max(0, (Number(alto) || 0) / 100);
-  const area = areaBase + 0.25;
+  const widthM = Math.max(0, (Number(ancho) || 0) / 100);
+  const heightM = Math.max(0, (Number(alto) || 0) / 100);
+  const area = widthM * (heightM + 0.25);
   const t = fabrics.find((f) => f.key === tela) || fabrics[0] || DEFAULT_FABRICS[1];
   const baseTela = Math.round(area * toNumber(t.pricePerM2));
   const extraMotor = accion === "motor" ? MOTOR_EXTRA : 0;
