@@ -207,6 +207,20 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
             <div className="cortcalc__telas">
               {fabrics.map((opt) => (
                 <button key={opt.key} type="button" className={"tela" + (tela === opt.key ? " active" : "")} onClick={() => setTela(opt.key)}>
+                  <span
+                    style={{
+                      width: "100%",
+                      height: 44,
+                      borderRadius: 10,
+                      border: "1px solid var(--line)",
+                      background: "var(--surface-2)",
+                      backgroundImage: opt.imageUrl ? `url(${opt.imageUrl})` : "none",
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      marginBottom: 10,
+                      display: "block",
+                    }}
+                  />
                   <span className="tela__top">
                     <span className="tela__name">{opt.label}</span>
                     <span className="tela__price">
@@ -253,14 +267,14 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
             <div className="cortcalc__measure">
               <label>Ancho</label>
               <div className="cortcalc__stepper">
-                <button type="button" onClick={() => setAncho((v) => Math.max(60, v - 10))} aria-label="Restar ancho">
+                <button type="button" onClick={() => setAncho((v) => Math.max(1, (Number(v) || 0) - 10))} aria-label="Restar ancho">
                   −
                 </button>
                 <div className="cortcalc__input">
-                  <input type="number" min="60" max="400" step="5" value={ancho} onChange={(e) => setAncho(Math.max(60, Math.min(400, +e.target.value || 60)))} />
+                  <input type="number" min="1" step="1" value={ancho} onChange={(e) => setAncho(Number(e.target.value) || 0)} />
                   <span>cm</span>
                 </div>
-                <button type="button" onClick={() => setAncho((v) => Math.min(400, v + 10))} aria-label="Sumar ancho">
+                <button type="button" onClick={() => setAncho((v) => (Number(v) || 0) + 10)} aria-label="Sumar ancho">
                   +
                 </button>
               </div>
@@ -268,14 +282,14 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
             <div className="cortcalc__measure">
               <label>Alto</label>
               <div className="cortcalc__stepper">
-                <button type="button" onClick={() => setAlto((v) => Math.max(60, v - 10))} aria-label="Restar alto">
+                <button type="button" onClick={() => setAlto((v) => Math.max(1, (Number(v) || 0) - 10))} aria-label="Restar alto">
                   −
                 </button>
                 <div className="cortcalc__input">
-                  <input type="number" min="60" max="320" step="5" value={alto} onChange={(e) => setAlto(Math.max(60, Math.min(320, +e.target.value || 60)))} />
+                  <input type="number" min="1" step="1" value={alto} onChange={(e) => setAlto(Number(e.target.value) || 0)} />
                   <span>cm</span>
                 </div>
-                <button type="button" onClick={() => setAlto((v) => Math.min(320, v + 10))} aria-label="Sumar alto">
+                <button type="button" onClick={() => setAlto((v) => (Number(v) || 0) + 10)} aria-label="Sumar alto">
                   +
                 </button>
               </div>
@@ -331,7 +345,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
 
         <aside className="cortcalc__summary">
           <div className="cortcalc__preview">
-            <div className="cortcalc__window" style={{ aspectRatio: `${ancho} / ${alto}` }}>
+            <div className="cortcalc__window" style={{ aspectRatio: `${Math.max(1, Number(ancho) || 1)} / ${Math.max(1, Number(alto) || 1)}` }}>
               <div className={"cortcalc__fabric cortcalc__fabric--" + tela} />
               <div className="cortcalc__measure-h">
                 <span>{ancho} cm</span>
