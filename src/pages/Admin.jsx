@@ -127,6 +127,7 @@ export function Admin() {
   const [cortinasSubtab, setCortinasSubtab] = useState("telas");
   const [selectedFabricId, setSelectedFabricId] = useState("");
   const [selectedColorId, setSelectedColorId] = useState("");
+  const [openOrderId, setOpenOrderId] = useState("");
 
   const defaultEnvioText = "Envío gratis en Venado Tuerto. Envío a todo el país coordinado por transporte propio o flete.";
   const defaultGarantiaText = "Garantía Picchio: 1 año en tapicería, 2 años en estructura y 5 años en herrajes.";
@@ -1480,10 +1481,104 @@ export function Admin() {
                         </option>
                       ))}
                     </select>
+                    <button
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => setOpenOrderId((prev) => (prev === o.id ? "" : o.id))}
+                    >
+                      {openOrderId === o.id ? "Ocultar detalle" : "Ver detalle"}
+                    </button>
                     <button className="btn btn--ghost btn--sm" onClick={() => navigator.clipboard?.writeText(o.id)}>
                       Copiar ID
                     </button>
                   </div>
+                  {openOrderId === o.id && (
+                    <div style={{ width: "100%", marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+                      <div style={{ display: "grid", gap: 10 }}>
+                        <div style={{ display: "grid", gap: 8 }}>
+                          {(Array.isArray(o.items) ? o.items : []).map((it, idx) => {
+                            const qty = Number(it?.qty) || 1;
+                            const hasAmount = Number.isFinite(it?.priceAmount);
+                            const lineTotal = hasAmount ? it.priceAmount * qty : null;
+                            const colorLabel =
+                              it?.color && typeof it.color === "object"
+                                ? it.color.name || ""
+                                : typeof it?.color === "string"
+                                  ? it.color
+                                  : "";
+                            return (
+                              <div
+                                key={it?.uid || it?.id || idx}
+                                style={{
+                                  display: "flex",
+                                  gap: 10,
+                                  alignItems: "flex-start",
+                                  border: "1px solid var(--line)",
+                                  borderRadius: 12,
+                                  padding: 10,
+                                  background: "var(--bg)",
+                                }}
+                              >
+                                <div className="admin__thumb" style={{ width: 54, height: 54, backgroundImage: `url(${it?.image || ""})` }} />
+                                <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+                                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                                    <b>{it?.name || "Item"}</b>
+                                    <span style={{ fontSize: 12, fontWeight: 700 }}>
+                                      {hasAmount ? `$${lineTotal.toLocaleString("es-AR")}` : it?.priceLabel || ""}
+                                    </span>
+                                  </div>
+                                  <div className="muted" style={{ fontSize: 12 }}>
+                                    Cantidad: {qty}
+                                    {colorLabel ? ` · Color: ${colorLabel}` : ""}
+                                    {it?.isCustom ? " · A medida" : ""}
+                                  </div>
+                                  {it?.meta ? (
+                                    <div className="muted" style={{ fontSize: 12, whiteSpace: "pre-wrap" }}>
+                                      {it.meta}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {(Array.isArray(o.items) ? o.items : []).length === 0 && <div className="muted">Sin items.</div>}
+                        </div>
+
+                        <div style={{ display: "grid", gap: 6, fontSize: 13 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                            <span className="muted">Envío</span>
+                            <b>{o.shipping?.envio || "-"}</b>
+                          </div>
+                          {o.shipping?.direccion || o.shipping?.ciudad || o.shipping?.provincia ? (
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                              <span className="muted">Dirección</span>
+                              <b style={{ textAlign: "right" }}>
+                                {[o.shipping?.direccion, o.shipping?.ciudad, o.shipping?.provincia, o.shipping?.cp].filter(Boolean).join(", ")}
+                              </b>
+                            </div>
+                          ) : null}
+                          <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                            <span className="muted">Pago</span>
+                            <b>{o.payment?.pago || "-"}</b>
+                          </div>
+                          {(() => {
+                            const total = (Array.isArray(o.items) ? o.items : []).reduce((acc, it) => {
+                              const qty = Number(it?.qty) || 1;
+                              if (!Number.isFinite(it?.priceAmount)) return acc;
+                              return acc + it.priceAmount * qty;
+                            }, 0);
+                            const hasAny = (Array.isArray(o.items) ? o.items : []).some((it) => Number.isFinite(it?.priceAmount));
+                            if (!hasAny) return null;
+                            return (
+                              <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                                <span className="muted">Total</span>
+                                <b>${total.toLocaleString("es-AR")}</b>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
               {orders.length === 0 && <div style={{ padding: 14 }} className="muted">Sin pedidos todavía.</div>}
