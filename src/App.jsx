@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { CartProvider, useCart } from "./context/CartContext";
 import { CartDrawer } from "./components/CartDrawer";
@@ -19,6 +20,28 @@ function Shell() {
   const loc = useLocation();
   const { toast } = useCart();
   const isAdmin = loc.pathname.startsWith("/admin");
+
+  function tryScrollToHash(hash) {
+    const id = String(hash || "").replace("#", "").trim();
+    if (!id) return false;
+    const el = document.getElementById(id);
+    if (!el) return false;
+    window.scrollTo({ top: el.offsetTop - 80, behavior: "smooth" });
+    return true;
+  }
+
+  useEffect(() => {
+    if (isAdmin) return;
+    if (!loc.hash) return;
+    let tries = 0;
+    const tick = () => {
+      tries += 1;
+      if (tryScrollToHash(loc.hash)) return;
+      if (tries >= 20) return;
+      setTimeout(tick, 50);
+    };
+    setTimeout(tick, 0);
+  }, [isAdmin, loc.hash, loc.pathname]);
 
   return (
     <>

@@ -63,8 +63,9 @@ export function Category() {
   const categories = useCategories();
   const products = useProductsByCategory(slug);
   const site = useSiteContent();
+  const { showToast } = useCart();
 
-  const cat = useMemo(() => categories.data.find((c) => c.slug === slug), [categories.data, slug]);
+  const cat = useMemo(() => categories.data.find((c) => c.slug === slug || c.id === slug), [categories.data, slug]);
   const list = useMemo(() => (products.data || []).filter((p) => p?.active !== false), [products.data]);
 
   const [sort, setSort] = useState("featured");
@@ -112,23 +113,47 @@ export function Category() {
 
   if (!cat) return <div className="container" style={{ padding: 100 }}>Categoría no encontrada</div>;
 
+  async function onShare() {
+    try {
+      const url = window.location.href;
+      const title = cat?.name ? `Picchio · ${cat.name}` : "Picchio";
+      if (navigator.share) {
+        await navigator.share({ title, url });
+        return;
+      }
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        showToast("Link copiado");
+        return;
+      }
+      showToast(url);
+    } catch (_) {
+      showToast("No se pudo compartir");
+    }
+  }
+
   return (
     <div className="fade-in">
       <div className="cat-hero">
         <div className="container">
-          <nav className="crumbs">
-            <a
-              href="/"
-              onClick={(e) => {
-                e.preventDefault();
-                nav("/");
-              }}
-            >
-              Inicio
-            </a>
-            <span className="sep">/</span>
-            <span>{cat.name}</span>
-          </nav>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <nav className="crumbs">
+              <a
+                href="/"
+                onClick={(e) => {
+                  e.preventDefault();
+                  nav("/");
+                }}
+              >
+                Inicio
+              </a>
+              <span className="sep">/</span>
+              <span>{cat.name}</span>
+            </nav>
+            <button className="btn btn--ghost btn--sm" onClick={onShare}>
+              Compartir
+            </button>
+          </div>
           <h1>{cat.name}</h1>
           <p>{cat.tag}</p>
         </div>

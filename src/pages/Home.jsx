@@ -135,7 +135,7 @@ export function Home() {
       <div className="container" style={{ marginTop: 0 }}>
         <div className="cat-strip">
           {categories.map((c) => (
-            <div className="cat-strip__item" key={c.slug} onClick={() => nav("/cat/" + c.slug)}>
+            <div className="cat-strip__item" key={c.slug || c.id} onClick={() => nav("/cat/" + (c.slug || c.id))}>
               {CatIcon[c.icon]}
               <span>{c.name}</span>
             </div>

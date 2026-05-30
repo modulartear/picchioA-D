@@ -65,9 +65,11 @@ export function Header() {
             {navItems.map((n) => {
               const isAnchor = n.path.includes("#");
               const href = isAnchor ? n.path : n.path;
-              const active =
-                (!isAnchor && loc.pathname.startsWith(n.path.split("/")[1] ? "/" + n.path.split("/")[1] : n.path)) ||
-                (isAnchor && loc.pathname === "/");
+              const active = (() => {
+                if (isAnchor) return loc.pathname === "/";
+                if (n.path === "/cat/sillas") return loc.pathname.startsWith("/cat/") && !loc.pathname.startsWith("/cat/a-medida");
+                return loc.pathname === n.path || loc.pathname.startsWith(n.path + "/");
+              })();
 
               return (
                 <a
