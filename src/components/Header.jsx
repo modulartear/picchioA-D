@@ -48,14 +48,14 @@ export function Header() {
   function goToAnchor(hash) {
     if (hash === "#cotizador") {
       if (loc.pathname !== "/") {
-        nav("/#cotizador");
+        nav({ pathname: "/", hash: "#cotizador" });
         return;
       }
       setCotizadorOpen(true);
       return;
     }
     if (loc.pathname !== "/") {
-      nav("/" + hash);
+      nav({ pathname: "/", hash });
       return;
     }
     const el = document.getElementById(hash.replace("#", ""));

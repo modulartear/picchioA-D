@@ -254,15 +254,19 @@ export function Home() {
           </div>
 
           <div className="projects">
-            {(projects || []).filter((p) => p?.active !== false).map((p, idx) => (
-              <div className={"proj " + (p.cls || clsByIndex[idx % clsByIndex.length])} key={p.id}>
-                <div className="proj__media" style={{ backgroundImage: `url(${projectCover(p)})` }} />
-                <div className="proj__caption">
-                  <span>{p.title || "Proyecto"}</span>
-                  <span style={{ opacity: 0.85, fontWeight: 500 }}>{p.tag || ""}</span>
+            {(() => {
+              const list = (projects || []).filter((p) => p?.active !== false);
+              if (list.length === 0) return <div className="muted">Todavía no hay proyectos publicados.</div>;
+              return list.map((p, idx) => (
+                <div className={"proj " + (p.cls || clsByIndex[idx % clsByIndex.length])} key={p.id}>
+                  <div className="proj__media" style={{ backgroundImage: `url(${projectCover(p)})` }} />
+                  <div className="proj__caption">
+                    <span>{p.title || "Proyecto"}</span>
+                    <span style={{ opacity: 0.85, fontWeight: 500 }}>{p.tag || ""}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
         </div>
       </section>
