@@ -726,10 +726,13 @@ input, select, textarea { font: inherit; color: inherit; }
   display: grid;
   grid-template-columns: 1fr 320px;
   max-height: 90vh;
+  height: min(72vh, 640px);
 }
 .colorcat__left {
   padding: 28px 24px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .colorcat__right {
   border-left: 1px solid var(--line);
@@ -743,13 +746,12 @@ input, select, textarea { font: inherit; color: inherit; }
   margin: 0 0 14px;
 }
 .colorcat__grid {
-  --cell: 64px;
-  --gap: 10px;
   display: grid;
-  grid-template-columns: repeat(4, var(--cell));
-  grid-auto-rows: var(--cell);
-  gap: var(--gap);
-  height: calc((var(--cell) * 6) + (var(--gap) * 5));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
   overflow: auto;
   padding-right: 6px;
 }
@@ -761,6 +763,8 @@ input, select, textarea { font: inherit; color: inherit; }
   background-position: center;
   cursor: pointer;
   transition: transform .12s ease, border-color .12s ease;
+  width: 100%;
+  height: 100%;
 }
 .colorcat__cell:hover { transform: scale(1.02); border-color: var(--ink); }
 .colorcat__cell.active { outline: 2px solid var(--accent); outline-offset: 2px; }
