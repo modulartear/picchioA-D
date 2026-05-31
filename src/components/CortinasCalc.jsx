@@ -52,6 +52,8 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
   const [tela, setTela] = useState("blackout");
   const [accion, setAccion] = useState("cadena");
   const [colorId, setColorId] = useState("");
+  const [colorModalOpen, setColorModalOpen] = useState(false);
+  const [colorModalPreviewId, setColorModalPreviewId] = useState("");
   const [includeInstall, setIncludeInstall] = useState(true);
   const [chainMetal, setChainMetal] = useState(false);
   const [systemBlack, setSystemBlack] = useState(false);
@@ -158,6 +160,37 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
   const total = baseTela + extraMotor + extraChainMetal + extraInstall + extraSystemBlack + extraZocalo + extraHeight;
   const fmt = (n) => "$" + n.toLocaleString("es-AR");
   const selectedColor = availableColors.find((c) => c.id === colorId) || null;
+  const previewColor = availableColors.find((c) => c.id === colorModalPreviewId) || null;
+
+  useEffect(() => {
+    if (!colorModalOpen) return;
+    if (availableColors.length === 0) return;
+    setColorModalPreviewId((prev) => {
+      if (prev && availableColors.some((c) => c.id === prev)) return prev;
+      if (colorId && availableColors.some((c) => c.id === colorId)) return colorId;
+      return availableColors[0].id;
+    });
+  }, [availableColors, colorId, colorModalOpen]);
+
+  useEffect(() => {
+    if (!colorModalOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setColorModalOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [colorModalOpen]);
+
+  const openColorModal = () => {
+    if (availableColors.length === 0) return;
+    setColorModalOpen(true);
+  };
+
+  const confirmColor = () => {
+    if (!previewColor) return;
+    setColorId(previewColor.id);
+    setColorModalOpen(false);
+  };
 
   const handleAdd = () => {
     const desc = [
@@ -239,28 +272,30 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
           {availableColors.length > 0 && (
             <div className="cortcalc__group">
               <span className="cortcalc__lbl">Color</span>
-              <div className="cortcalc__chips">
-                {availableColors.map((c) => (
-                  <button key={c.id} type="button" className={"chip" + (colorId === c.id ? " active" : "")} onClick={() => setColorId(c.id)}>
-                    <span
-                      style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: 999,
-                        backgroundImage: c.imageUrl ? `url(${c.imageUrl})` : "none",
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        border: "1px solid var(--line)",
-                        backgroundColor: "var(--surface-2)",
-                        display: "inline-block",
-                        marginRight: 8,
-                        verticalAlign: "middle",
-                      }}
-                    />
-                    {c.name}
-                  </button>
-                ))}
-              </div>
+              <button type="button" className="btn btn--ghost btn--sm" onClick={openColorModal}>
+                Seleccioná el color de nuestro catálogo
+              </button>
+              {selectedColor && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+                  <span
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 8,
+                      border: "1px solid var(--line)",
+                      backgroundImage: selectedColor.imageUrl ? `url(${selectedColor.imageUrl})` : "none",
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      backgroundColor: "var(--surface-2)",
+                      display: "inline-block",
+                      flex: "0 0 22px",
+                    }}
+                  />
+                  <span className="muted" style={{ fontSize: 13 }}>
+                    {selectedColor.name}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -424,10 +459,70 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
     </div>
   );
 
+  const ColorModal =
+    colorModalOpen && availableColors.length > 0 ? (
+      <div className={"modal-backdrop open"} onClick={() => setColorModalOpen(false)}>
+        <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} style={{ width: "min(920px, 100%)" }}>
+          <button className="modal__close" onClick={() => setColorModalOpen(false)} aria-label="Cerrar">
+            <Icon.Close />
+          </button>
+          <div className="colorcat">
+            <div className="colorcat__left">
+              <div className="colorcat__title">Seleccioná un color</div>
+              <div className="colorcat__grid" role="list">
+                {availableColors.map((c) => {
+                  const active = c.id === colorModalPreviewId;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={"colorcat__cell" + (active ? " active" : "")}
+                      onClick={() => setColorModalPreviewId(c.id)}
+                      role="listitem"
+                      aria-label={c.name}
+                      title={c.name}
+                      style={{
+                        backgroundImage: c.imageUrl ? `url(${c.imageUrl})` : "none",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              <div className="muted" style={{ fontSize: 12, marginTop: 12 }}>
+                Mostrando {Math.min(availableColors.length, 24)} por pantalla (4×6). Si hay más, desplazá.
+              </div>
+            </div>
+            <div className="colorcat__right">
+              <div className="colorcat__preview">
+                <div
+                  className="colorcat__zoom"
+                  style={{
+                    backgroundImage: previewColor?.imageUrl ? `url(${previewColor.imageUrl})` : "none",
+                  }}
+                />
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <b style={{ fontSize: 14 }}>{previewColor?.name || "Elegí un color"}</b>
+                  <span className="muted" style={{ fontSize: 12 }}>
+                    {t.label}
+                  </span>
+                </div>
+                <button type="button" className="btn btn--accent btn--block" onClick={confirmColor} disabled={!previewColor}>
+                  Seleccionar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ) : null;
+
   if (variant === "section") {
     return (
       <section className="section" id="cortinas-calc" style={{ background: "var(--surface)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
-        <div className="container">{Inner}</div>
+        <div className="container">
+          {Inner}
+          {ColorModal}
+        </div>
       </section>
     );
   }
@@ -435,6 +530,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
   return (
     <div className="container" style={{ paddingTop: 32, paddingBottom: 80 }}>
       {Inner}
+      {ColorModal}
     </div>
   );
 }
