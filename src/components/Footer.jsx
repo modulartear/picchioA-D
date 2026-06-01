@@ -14,6 +14,7 @@ export function Footer() {
             <div className="footer__brand">
               <img src="/assets/ChatGPT%20Image%2029%20may%202026%2C%2019_13_38.png" alt="Picchio" />
             </div>
+            <p className="footer__tag">Somos fabricantes de muebles. Diseño, fabricación propia y entrega a todo el país.</p>
           </div>
 
           <div>
