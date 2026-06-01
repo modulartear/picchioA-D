@@ -156,7 +156,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
   const extraInstall = includeInstall ? pricing.installPrice : 0;
   const extraSystemBlack = systemBlack ? pricing.systemBlackPrice : 0;
   const extraZocalo = zocalo ? pricing.zocaloPrice : 0;
-  const extraHeight = alto > pricing.extraHeightThresholdCm ? pricing.extraHeightPrice : 0;
+  const extraHeight = ancho > pricing.extraHeightThresholdCm ? pricing.extraHeightPrice : 0;
   const total = baseTela + extraMotor + extraChainMetal + extraInstall + extraSystemBlack + extraZocalo + extraHeight;
   const fmt = (n) => "$" + n.toLocaleString("es-AR");
   const selectedColor = availableColors.find((c) => c.id === colorId) || null;
@@ -257,10 +257,6 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
                   />
                   <span className="tela__top">
                     <span className="tela__name">{opt.label}</span>
-                    <span className="tela__price">
-                      {fmt(opt.pricePerM2)}
-                      <small>/m²</small>
-                    </span>
                   </span>
                   <span className="tela__tag">{opt.tag}</span>
                 </button>
@@ -373,7 +369,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
             </div>
             {pricing.extraHeightPrice > 0 && (
               <p className="cortcalc__hint" style={{ marginTop: 10 }}>
-                Si el alto supera {pricing.extraHeightThresholdCm} cm: + {fmt(pricing.extraHeightPrice)}
+                Si el ancho supera {pricing.extraHeightThresholdCm} cm: + {fmt(pricing.extraHeightPrice)}
               </p>
             )}
           </div>
@@ -401,7 +397,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
             </div>
             <div className="cortcalc__row">
               <span>
-                {t.label} · {fmt(t.pricePerM2)}/m²
+                {t.label}
               </span>
               <b>{fmt(baseTela)}</b>
             </div>
