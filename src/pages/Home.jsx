@@ -96,12 +96,7 @@ export function Home() {
     <div>
       <section className="hero">
         <div className="hero__media" style={{ backgroundImage: `url(${img.heroLiving})` }} />
-        <div className="container hero__meta">
-          <span>Venado Tuerto · Fab. desde hace 10 años</span>
-          <span>Colección 2026</span>
-        </div>
         <div className="container hero__content">
-          <span className="hero__eyebrow">Nuevos lanzamientos</span>
           <h1 className="hero__title">
             Hacemos los muebles
             <br />

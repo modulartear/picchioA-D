@@ -128,6 +128,16 @@ export function Product() {
           </a>
           <span className="sep">/</span>
           <a
+            href="/cat/productos"
+            onClick={(e) => {
+              e.preventDefault();
+              nav("/cat/productos");
+            }}
+          >
+            Productos
+          </a>
+          <span className="sep">/</span>
+          <a
             href={"/cat/" + product.cat}
             onClick={(e) => {
               e.preventDefault();

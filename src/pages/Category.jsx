@@ -248,6 +248,16 @@ export function Category() {
                 Inicio
               </a>
               <span className="sep">/</span>
+              <a
+                href="/cat/productos"
+                onClick={(e) => {
+                  e.preventDefault();
+                  nav("/cat/productos");
+                }}
+              >
+                Productos
+              </a>
+              <span className="sep">/</span>
               <span>{cat.name}</span>
             </nav>
             <button className="btn btn--ghost btn--sm" onClick={onShare}>
