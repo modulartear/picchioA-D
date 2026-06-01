@@ -152,14 +152,14 @@ input, select, textarea { font: inherit; color: inherit; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 14px 0 18px;
-  gap: 12px;
+  padding: 8px 0 10px;
+  gap: 8px;
 }
 .header__logo { display: flex; align-items: center; gap: 10px; }
 .header__logo--center { justify-content: center; }
 .header__logo img,
 .header__logo-img {
-  height: 142px;
+  height: 168px;
   width: auto;
   border-radius: 0;
   object-fit: contain;
