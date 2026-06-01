@@ -1,15 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import { Icon } from "./icons";
+import { useCategories } from "../hooks/useCatalog";
 
 export function Footer() {
   const nav = useNavigate();
+  const categoriesState = useCategories();
+  const categories = (categoriesState.data || []).filter((c) => c?.active !== false);
   return (
     <footer className="footer" id="contacto">
       <div className="container">
         <div className="footer__grid">
           <div>
             <div className="footer__brand">
-              <img src="/assets/ChatGPT%20Image%2029%20may%202026%2C%2019_13_38.png" alt="Picchio" />
+              <img src="/assets/picchio-logo1.jpg" alt="Picchio" />
               <b>PICCHIO</b>
             </div>
             <p className="footer__tag">Somos fabricantes de muebles. Diseño, fabricación propia y entrega a todo el país.</p>
@@ -20,70 +23,32 @@ export function Footer() {
             <ul>
               <li>
                 <a
-                  href="/#cotizador"
+                  href="/cat/productos"
                   onClick={(e) => {
                     e.preventDefault();
-                    nav("/#cotizador");
+                    nav("/cat/productos");
                   }}
                 >
-                  A medida
+                  Todos
                 </a>
               </li>
-              <li>
-                <a
-                  href="/#cortinas-calc"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    nav("/#cortinas-calc");
-                  }}
-                >
-                  Cortinas
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/cat/sillas"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    nav("/cat/sillas");
-                  }}
-                >
-                  Sillas
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/cat/oficina"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    nav("/cat/oficina");
-                  }}
-                >
-                  Oficina
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/cat/cortinas"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    nav("/cat/cortinas");
-                  }}
-                >
-                  Cortinas Roller
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/cat/living"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    nav("/cat/living");
-                  }}
-                >
-                  Sillones
-                </a>
-              </li>
+              {categories.map((c) => {
+                const slug = String(c.slug || c.id || "").trim();
+                if (!slug) return null;
+                return (
+                  <li key={slug}>
+                    <a
+                      href={"/cat/" + slug}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        nav("/cat/" + slug);
+                      }}
+                    >
+                      {c.name || slug}
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
           </div>
 
@@ -128,6 +93,12 @@ export function Footer() {
                   <br />
                   Venado Tuerto, Santa Fe (2600)
                 </span>
+              </div>
+              <div className="row">
+                <Icon.Mail />
+                <a href="mailto:picchioamob@outlook.com" style={{ color: "inherit", textDecoration: "none" }}>
+                  picchioamob@outlook.com
+                </a>
               </div>
               <div className="row">
                 <Icon.Clock />

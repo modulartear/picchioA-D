@@ -67,7 +67,7 @@ export function Header() {
       <header className="header">
         <div className="container header__inner">
           <Link className="header__logo header__logo--center" to="/">
-            <img className="header__logo-img" src="/assets/ChatGPT%20Image%2029%20may%202026%2C%2019_13_38.png" alt="Picchio" />
+            <img className="header__logo-img" src="/assets/picchio-logo1.jpg" alt="Picchio" />
           </Link>
 
           <div className="header__bar">
