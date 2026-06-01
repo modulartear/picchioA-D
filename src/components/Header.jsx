@@ -66,54 +66,57 @@ export function Header() {
     <>
       <header className="header">
         <div className="container header__inner">
-          <Link className="header__logo" to="/">
+          <Link className="header__logo header__logo--center" to="/">
             <img className="header__logo-img" src="/assets/ChatGPT%20Image%2029%20may%202026%2C%2019_13_38.png" alt="Picchio" />
           </Link>
 
-          <nav className="nav">
-            {navItems.map((n) => {
-              const isAnchor = n.path.includes("#");
-              const href = isAnchor ? n.path : n.path;
-              const active = (() => {
-                if (isAnchor) return loc.pathname === "/";
-                if (n.path === "/cat/productos") return loc.pathname.startsWith("/cat/") && !loc.pathname.startsWith("/cat/a-medida");
-                return loc.pathname === n.path || loc.pathname.startsWith(n.path + "/");
-              })();
+          <div className="header__bar">
+            <div />
+            <nav className="nav">
+              {navItems.map((n) => {
+                const isAnchor = n.path.includes("#");
+                const href = isAnchor ? n.path : n.path;
+                const active = (() => {
+                  if (isAnchor) return loc.pathname === "/";
+                  if (n.path === "/cat/productos") return loc.pathname.startsWith("/cat/") && !loc.pathname.startsWith("/cat/a-medida");
+                  return loc.pathname === n.path || loc.pathname.startsWith(n.path + "/");
+                })();
 
-              return (
-                <a
-                  key={n.label}
-                  href={href}
-                  className={active && !isAnchor ? "active" : ""}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (isAnchor) goToAnchor(n.path.split("#")[1] ? "#" + n.path.split("#")[1] : "#");
-                    else nav(n.path);
-                  }}
-                >
-                  {n.label}
-                </a>
-              );
-            })}
-          </nav>
+                return (
+                  <a
+                    key={n.label}
+                    href={href}
+                    className={active && !isAnchor ? "active" : ""}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (isAnchor) goToAnchor(n.path.split("#")[1] ? "#" + n.path.split("#")[1] : "#");
+                      else nav(n.path);
+                    }}
+                  >
+                    {n.label}
+                  </a>
+                );
+              })}
+            </nav>
 
-          <div className="header__actions">
-            <button className="icon-btn" aria-label="Buscar" onClick={() => showToast("Buscador próximamente — usá las categorías por ahora")}>
-              <Icon.Search />
-            </button>
-            <button className="icon-btn" aria-label="Modo claro/oscuro" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-              {theme === "dark" ? <Icon.Sun /> : <Icon.Moon />}
-            </button>
-            <button className="icon-btn" aria-label="Favoritos" onClick={() => showToast("Favoritos próximamente")}>
-              <Icon.Heart />
-            </button>
-            <button className="icon-btn" aria-label="Carrito" onClick={() => setCartOpen(true)}>
-              <Icon.Cart />
-              {cartCount > 0 && <span className="badge">{cartCount}</span>}
-            </button>
-            <button className="icon-btn menu-toggle" aria-label="Menú" onClick={() => setMobileOpen((o) => !o)}>
-              {mobileOpen ? <Icon.Close /> : <Icon.Menu />}
-            </button>
+            <div className="header__actions">
+              <button className="icon-btn" aria-label="Buscar" onClick={() => showToast("Buscador próximamente — usá las categorías por ahora")}>
+                <Icon.Search />
+              </button>
+              <button className="icon-btn" aria-label="Modo claro/oscuro" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+                {theme === "dark" ? <Icon.Sun /> : <Icon.Moon />}
+              </button>
+              <button className="icon-btn" aria-label="Favoritos" onClick={() => showToast("Favoritos próximamente")}>
+                <Icon.Heart />
+              </button>
+              <button className="icon-btn" aria-label="Carrito" onClick={() => setCartOpen(true)}>
+                <Icon.Cart />
+                {cartCount > 0 && <span className="badge">{cartCount}</span>}
+              </button>
+              <button className="icon-btn menu-toggle" aria-label="Menú" onClick={() => setMobileOpen((o) => !o)}>
+                {mobileOpen ? <Icon.Close /> : <Icon.Menu />}
+              </button>
+            </div>
           </div>
         </div>
       </header>
