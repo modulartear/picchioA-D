@@ -138,8 +138,9 @@ export function Admin() {
   const [instagramToken, setInstagramToken] = useState("");
   const [syncingInstagram, setSyncingInstagram] = useState(false);
 
-  const [siteImagesDraft, setSiteImagesDraft] = useState({ heroLiving: "" });
+  const [siteImagesDraft, setSiteImagesDraft] = useState({ heroLiving: "", aboutShop: "" });
   const [uploadingSiteHero, setUploadingSiteHero] = useState(false);
+  const [uploadingAboutShop, setUploadingAboutShop] = useState(false);
   const [savingSiteImages, setSavingSiteImages] = useState(false);
 
   const [catDraft, setCatDraft] = useState({ slug: "", name: "", tag: "", icon: "chair", order: 0, active: true });
@@ -440,8 +441,9 @@ export function Admin() {
     const img = siteContentDoc.data?.img && typeof siteContentDoc.data.img === "object" ? siteContentDoc.data.img : {};
     setSiteImagesDraft({
       heroLiving: String(img?.heroLiving || DEFAULT_IMAGES.heroLiving || "").trim(),
+      aboutShop: String(img?.aboutShop || DEFAULT_IMAGES.aboutShop || "").trim(),
     });
-  }, [DEFAULT_IMAGES.heroLiving, settingsTab, siteContentDoc.data, tab]);
+  }, [DEFAULT_IMAGES.aboutShop, DEFAULT_IMAGES.heroLiving, settingsTab, siteContentDoc.data, tab]);
 
   useEffect(() => {
     try {
@@ -666,6 +668,7 @@ export function Admin() {
         {
           img: {
             heroLiving: String(siteImagesDraft.heroLiving || "").trim(),
+            aboutShop: String(siteImagesDraft.aboutShop || "").trim(),
           },
           updatedAt: serverTimestamp(),
         },
@@ -692,6 +695,22 @@ export function Admin() {
       setStatus({ type: "err", message: describeError(err) });
     } finally {
       setUploadingSiteHero(false);
+    }
+  }
+
+  async function onUploadAboutShop(file) {
+    if (!file) return;
+    if (uploadingAboutShop) return;
+    setUploadingAboutShop(true);
+    setStatus({ type: "", message: "" });
+    try {
+      const url = await uploadSiteImage({ id: "aboutShop", file });
+      setSiteImagesDraft((p) => ({ ...p, aboutShop: String(url || "") }));
+      setStatus({ type: "ok", message: "Imagen subida" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    } finally {
+      setUploadingAboutShop(false);
     }
   }
 
@@ -1776,8 +1795,40 @@ export function Admin() {
                         )}
                       </div>
                     </Field>
+                    <Field label="Imagen Nosotros (Home)">
+                      <div style={{ display: "grid", gap: 10 }}>
+                        <input
+                          value={siteImagesDraft.aboutShop}
+                          onChange={(e) => setSiteImagesDraft((p) => ({ ...p, aboutShop: e.target.value }))}
+                          placeholder="https://..."
+                        />
+                        <label className="btn btn--ghost" style={{ cursor: "pointer", justifyContent: "center" }}>
+                          {uploadingAboutShop ? "Subiendo..." : "Subir imagen a Storage"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: "none" }}
+                            onChange={(e) => onUploadAboutShop(e.target.files?.[0])}
+                            disabled={uploadingAboutShop}
+                          />
+                        </label>
+                        {String(siteImagesDraft.aboutShop || "").trim() && (
+                          <div
+                            style={{
+                              height: 180,
+                              borderRadius: 14,
+                              border: "1px solid var(--line)",
+                              background: "var(--bg)",
+                              backgroundImage: `url(${siteImagesDraft.aboutShop})`,
+                              backgroundSize: "cover",
+                              backgroundPosition: "center",
+                            }}
+                          />
+                        )}
+                      </div>
+                    </Field>
                     <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                      Se guarda en <b>site/content.img.heroLiving</b>.
+                      Se guarda en <b>site/content.img</b>.
                     </p>
                   </div>
                 </div>
