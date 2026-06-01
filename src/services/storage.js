@@ -40,3 +40,12 @@ export async function uploadProjectMedia({ projectId, mediaId, file }) {
   await uploadBytes(r, file);
   return await getDownloadURL(r);
 }
+
+export async function uploadSiteImage({ id, file }) {
+  assertConfigured();
+  const safeName = String(file.name || "image").replace(/[^\w.\-]+/g, "-");
+  const key = `site/${id}/${Date.now()}-${safeName}`;
+  const r = ref(storage, key);
+  await uploadBytes(r, file);
+  return await getDownloadURL(r);
+}

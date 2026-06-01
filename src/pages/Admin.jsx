@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db, firebaseConfigured } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
+import { DEFAULT_IMAGES } from "../services/catalog";
 import {
   deleteCategory,
   deleteProject,
@@ -19,7 +20,7 @@ import {
   upsertProject,
   upsertProduct,
 } from "../services/admin";
-import { uploadCortinasColorImage, uploadCortinasFabricImage, uploadProductImage, uploadProjectMedia } from "../services/storage";
+import { uploadCortinasColorImage, uploadCortinasFabricImage, uploadProductImage, uploadProjectMedia, uploadSiteImage } from "../services/storage";
 
 function fmtDate(ts) {
   try {
@@ -136,6 +137,10 @@ export function Admin() {
   const [instagramDraft, setInstagramDraft] = useState({ username: "", profileUrl: "" });
   const [instagramToken, setInstagramToken] = useState("");
   const [syncingInstagram, setSyncingInstagram] = useState(false);
+
+  const [siteImagesDraft, setSiteImagesDraft] = useState({ heroLiving: "" });
+  const [uploadingSiteHero, setUploadingSiteHero] = useState(false);
+  const [savingSiteImages, setSavingSiteImages] = useState(false);
 
   const [catDraft, setCatDraft] = useState({ slug: "", name: "", tag: "", icon: "chair", order: 0, active: true });
 
@@ -430,6 +435,15 @@ export function Admin() {
   }, [siteContentDoc.data]);
 
   useEffect(() => {
+    if (!siteContentDoc.data) return;
+    if (tab === "settings" && settingsTab === "images") return;
+    const img = siteContentDoc.data?.img && typeof siteContentDoc.data.img === "object" ? siteContentDoc.data.img : {};
+    setSiteImagesDraft({
+      heroLiving: String(img?.heroLiving || DEFAULT_IMAGES.heroLiving || "").trim(),
+    });
+  }, [DEFAULT_IMAGES.heroLiving, settingsTab, siteContentDoc.data, tab]);
+
+  useEffect(() => {
     try {
       const key = "picchio:instagramAccessToken";
       const v = localStorage.getItem(key);
@@ -638,6 +652,46 @@ export function Admin() {
       setStatus({ type: "ok", message: "Instagram guardado" });
     } catch (err) {
       setStatus({ type: "err", message: describeError(err) });
+    }
+  }
+
+  async function onSaveSiteImages() {
+    if (savingSiteImages) return;
+    if (!firebaseConfigured || !db) return;
+    setSavingSiteImages(true);
+    setStatus({ type: "", message: "" });
+    try {
+      await setDoc(
+        doc(db, "site", "content"),
+        {
+          img: {
+            heroLiving: String(siteImagesDraft.heroLiving || "").trim(),
+          },
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+      setStatus({ type: "ok", message: "Imágenes guardadas" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    } finally {
+      setSavingSiteImages(false);
+    }
+  }
+
+  async function onUploadSiteHero(file) {
+    if (!file) return;
+    if (uploadingSiteHero) return;
+    setUploadingSiteHero(true);
+    setStatus({ type: "", message: "" });
+    try {
+      const url = await uploadSiteImage({ id: "heroLiving", file });
+      setSiteImagesDraft((p) => ({ ...p, heroLiving: String(url || "") }));
+      setStatus({ type: "ok", message: "Imagen subida" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    } finally {
+      setUploadingSiteHero(false);
     }
   }
 
@@ -1450,6 +1504,7 @@ export function Admin() {
                 { k: "admins", l: "Usuarios admin" },
                 { k: "shipping", l: "Envío" },
                 { k: "payment", l: "Pago" },
+              { k: "images", l: "Imágenes" },
                 { k: "instagram", l: "Instagram" },
               ].map((t) => (
                 <button key={t.k} className={"chip" + (settingsTab === t.k ? " active" : "")} onClick={() => setSettingsTab(t.k)}>
@@ -1673,6 +1728,56 @@ export function Admin() {
                     </Field>
                     <p className="muted" style={{ margin: 0, fontSize: 12 }}>
                       “Guardar” actualiza <b>site/content.instagram</b>. “Sincronizar ahora” crea/actualiza proyectos con ID <b>ig_*</b>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {settingsTab === "images" && (
+              <div className="admin__grid" style={{ marginTop: 16 }}>
+                <div className="admin__panel">
+                  <div className="admin__panel-head" style={{ justifyContent: "space-between" }}>
+                    <b>Imágenes del sitio</b>
+                    <button type="button" className="btn btn--accent btn--sm" onClick={onSaveSiteImages} disabled={savingSiteImages}>
+                      {savingSiteImages ? "Guardando..." : "Guardar"}
+                    </button>
+                  </div>
+                  <div style={{ padding: 14, display: "grid", gap: 12 }}>
+                    <Field label="Imagen principal (Home)">
+                      <div style={{ display: "grid", gap: 10 }}>
+                        <input
+                          value={siteImagesDraft.heroLiving}
+                          onChange={(e) => setSiteImagesDraft((p) => ({ ...p, heroLiving: e.target.value }))}
+                          placeholder="https://..."
+                        />
+                        <label className="btn btn--ghost" style={{ cursor: "pointer", justifyContent: "center" }}>
+                          {uploadingSiteHero ? "Subiendo..." : "Subir imagen a Storage"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: "none" }}
+                            onChange={(e) => onUploadSiteHero(e.target.files?.[0])}
+                            disabled={uploadingSiteHero}
+                          />
+                        </label>
+                        {String(siteImagesDraft.heroLiving || "").trim() && (
+                          <div
+                            style={{
+                              height: 180,
+                              borderRadius: 14,
+                              border: "1px solid var(--line)",
+                              background: "var(--bg)",
+                              backgroundImage: `url(${siteImagesDraft.heroLiving})`,
+                              backgroundSize: "cover",
+                              backgroundPosition: "center",
+                            }}
+                          />
+                        )}
+                      </div>
+                    </Field>
+                    <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+                      Se guarda en <b>site/content.img.heroLiving</b>.
                     </p>
                   </div>
                 </div>
