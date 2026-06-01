@@ -116,7 +116,7 @@ export function Footer() {
         </div>
         <div className="footer__bottom">
           <span>© 2026 Picchio Amoblamiento + Diseño</span>
-          <span>Hecho con orgullo en Venado Tuerto</span>
+          <span>Hecho con orgullo en Venado Tuerto por DiseArte</span>
         </div>
       </div>
     </footer>
