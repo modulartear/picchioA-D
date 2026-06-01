@@ -155,6 +155,26 @@ export function Category() {
             </div>
             <h1>Productos</h1>
             <p>Todos los productos disponibles.</p>
+            <div className="chips" style={{ marginTop: 18, gap: 10, flexWrap: "wrap", overflowX: "visible" }}>
+              <button
+                className={"chip active"}
+                onClick={() => nav("/cat/productos")}
+              >
+                Todos
+              </button>
+              {categories.data
+                .filter((c) => c?.active !== false)
+                .filter((c) => (c.slug || c.id) !== "cortinas")
+                .map((c) => (
+                  <button
+                    key={c.slug || c.id}
+                    className="chip"
+                    onClick={() => nav("/cat/" + (c.slug || c.id))}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+            </div>
           </div>
         </div>
 
