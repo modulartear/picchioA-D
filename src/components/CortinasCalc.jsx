@@ -226,9 +226,9 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
       <div className="cortcalc__head">
         <span className="eyebrow">Cotizador de cortinas roller</span>
         <h3 className="cortcalc__title">
-          Calculá tu cortina
+          Cotizá tu cortina
           <br />
-          <em>en vivo.</em>
+          <em>online.</em>
         </h3>
         <p className="cortcalc__intro">Poné las medidas y el tipo de tela. El total se actualiza al instante.</p>
       </div>
