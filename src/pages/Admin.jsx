@@ -1359,7 +1359,7 @@ export function Admin() {
 
         <div className="admin__tabs">
           {[
-            { k: "home", l: "Home" },
+            { k: "home", l: "Inicio" },
             { k: "products", l: "Productos" },
             { k: "categories", l: "Categorías" },
             { k: "cortinas", l: "Cortinas" },
@@ -1690,26 +1690,34 @@ export function Admin() {
               </div>
               <div style={{ padding: 14 }}>
                 <form onSubmit={onSaveCategory} className="admin__auth">
-                  <Field label="Slug">
+                  <Field label="Identificador (slug)">
                     <input value={catDraft.slug} onChange={(e) => setCatDraft((c) => ({ ...c, slug: e.target.value.trim() }))} />
                   </Field>
                   <Field label="Nombre">
                     <input value={catDraft.name} onChange={(e) => setCatDraft((c) => ({ ...c, name: e.target.value }))} />
                   </Field>
-                  <Field label="Tag">
+                  <Field label="Descripción">
                     <input value={catDraft.tag} onChange={(e) => setCatDraft((c) => ({ ...c, tag: e.target.value }))} />
                   </Field>
                   <div className="field-grid">
-                    <Field label="Icon">
+                    <Field label="Ícono">
                       <select value={catDraft.icon} onChange={(e) => setCatDraft((c) => ({ ...c, icon: e.target.value }))}>
-                        {["ruler", "chair", "desk", "blinds", "table", "bed", "sofa"].map((i) => (
-                          <option key={i} value={i}>
-                            {i}
+                        {[
+                          { v: "ruler", t: "Regla" },
+                          { v: "chair", t: "Silla" },
+                          { v: "desk", t: "Escritorio" },
+                          { v: "blinds", t: "Cortinas" },
+                          { v: "table", t: "Mesa" },
+                          { v: "bed", t: "Cama" },
+                          { v: "sofa", t: "Sofá" },
+                        ].map((i) => (
+                          <option key={i.v} value={i.v}>
+                            {i.t}
                           </option>
                         ))}
                       </select>
                     </Field>
-                    <Field label="Order">
+                    <Field label="Orden">
                       <input value={catDraft.order} type="number" onChange={(e) => setCatDraft((c) => ({ ...c, order: Number(e.target.value) }))} />
                     </Field>
                   </div>
@@ -1738,7 +1746,7 @@ export function Admin() {
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       <b>{c.name}</b>
                       <span className="muted" style={{ fontSize: 12 }}>
-                        {c.slug || c.id} · {c.icon} · order {c.order ?? 0} {c.active === false ? "· inactiva" : ""}
+                        {c.slug || c.id} · {c.icon} · orden {c.order ?? 0} {c.active === false ? "· inactiva" : ""}
                       </span>
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
@@ -1782,7 +1790,7 @@ export function Admin() {
                   <Field label="Nombre">
                     <input value={prodDraft.name} onChange={(e) => setProdDraft((p) => ({ ...p, name: e.target.value }))} />
                   </Field>
-                  <Field label="Tagline">
+                  <Field label="Subtítulo">
                     <input value={prodDraft.tagline} onChange={(e) => setProdDraft((p) => ({ ...p, tagline: e.target.value }))} />
                   </Field>
                   <Field label="Descripción">
@@ -1806,7 +1814,7 @@ export function Admin() {
                         onChange={(e) => setProdDraft((p) => ({ ...p, price: e.target.value }))}
                       />
                     </Field>
-                    <Field label="Badge">
+                    <Field label="Etiqueta">
                       <input value={prodDraft.badge} onChange={(e) => setProdDraft((p) => ({ ...p, badge: e.target.value }))} />
                     </Field>
                   </div>
