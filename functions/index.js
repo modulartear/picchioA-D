@@ -1,20 +1,29 @@
 const admin = require("firebase-admin");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { defineBoolean, defineInt, defineString } = require("firebase-functions/params");
 const logger = require("firebase-functions/logger");
 const nodemailer = require("nodemailer");
 
 admin.initializeApp();
 
-function env(name) {
-  return String(process.env[name] || "").trim();
+const SMTP_HOST = defineString("SMTP_HOST");
+const SMTP_USER = defineString("SMTP_USER");
+const SMTP_PASS = defineString("SMTP_PASS");
+const SMTP_FROM = defineString("SMTP_FROM");
+const SMTP_PORT = defineInt("SMTP_PORT", { default: 587 });
+const SMTP_SECURE = defineBoolean("SMTP_SECURE", { default: false });
+const ADMIN_NOTIFY_TO = defineString("ADMIN_NOTIFY_TO", { default: "picchioamob@outlook.com" });
+
+function paramValue(p) {
+  return String(p?.value?.() || "").trim();
 }
 
 function buildTransporter() {
-  const host = env("SMTP_HOST");
-  const user = env("SMTP_USER");
-  const pass = env("SMTP_PASS");
-  const port = Number(env("SMTP_PORT") || "587");
-  const secure = String(env("SMTP_SECURE") || "").toLowerCase() === "true";
+  const host = paramValue(SMTP_HOST);
+  const user = paramValue(SMTP_USER);
+  const pass = paramValue(SMTP_PASS);
+  const port = Number(SMTP_PORT.value());
+  const secure = !!SMTP_SECURE.value();
 
   if (!host || !user || !pass) return null;
 
@@ -108,8 +117,8 @@ function leadEmail({ leadId, lead }) {
 }
 
 async function send({ subject, text, html }) {
-  const to = env("ADMIN_NOTIFY_TO") || "picchioamob@outlook.com";
-  const from = env("SMTP_FROM") || env("SMTP_USER");
+  const to = paramValue(ADMIN_NOTIFY_TO) || "picchioamob@outlook.com";
+  const from = paramValue(SMTP_FROM) || paramValue(SMTP_USER);
   const transporter = buildTransporter();
 
   if (!transporter) {
@@ -153,4 +162,3 @@ exports.onLeadCreated = onDocumentCreated("leads/{leadId}", async (event) => {
     logger.error("Error enviando email de consulta", err);
   }
 });
-
