@@ -589,9 +589,8 @@ input, select, textarea { font: inherit; color: inherit; }
   padding-bottom: 64px;
   border-bottom: 1px solid rgba(255,255,255,.12);
 }
-.footer__brand { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-.footer__brand img { width: 40px; height: 40px; border-radius: 50%; background: #fff; }
-.footer__brand b { font-size: 18px; letter-spacing: .04em; color: #fff; }
+.footer__brand { display: flex; align-items: center; margin-bottom: 16px; }
+.footer__brand img { height: 72px; width: auto; border-radius: 0; background: transparent; object-fit: contain; }
 .footer__tag { color: #8A887F; max-width: 36ch; font-size: 14px; }
 .footer h4 { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: #fff; margin: 0 0 18px; font-weight: 600; }
 .footer ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
