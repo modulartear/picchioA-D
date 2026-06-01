@@ -152,8 +152,8 @@ input, select, textarea { font: inherit; color: inherit; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 8px 0 10px;
-  gap: 8px;
+  padding: 8px 0 4px;
+  gap: 4px;
 }
 .header__logo { display: flex; align-items: center; gap: 10px; }
 .header__logo--center { justify-content: center; }
