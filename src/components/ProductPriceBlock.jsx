@@ -83,10 +83,7 @@ export function ProductPriceBlock({ product, variant = "card" }) {
         </div>
 
         <div className="price-block__installments-detail">
-          <strong>
-            {pricing.installmentCount} cuotas de {formatArs(pricing.installmentPrice, { alwaysDecimals: true })}
-          </strong>
-          <span>sin interés</span>
+          <strong>{pricing.installmentCount} cuotas de {formatArs(pricing.installmentPrice, { alwaysDecimals: true })}</strong>
         </div>
       </div>
     );
