@@ -421,21 +421,63 @@ input, select, textarea { font: inherit; color: inherit; }
   font-size: 14px;
 }
 .price-block--detail {
-  gap: 8px;
+  gap: 10px;
 }
 .price-block--detail .price-block__list {
-  font-size: 14px;
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--muted);
 }
-.price-block--detail .price-block__cash {
-  font-size: 28px;
+.price-block__transfer-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--accent);
+}
+.price-block__transfer-line strong,
+.price-block__transfer-line span {
+  color: var(--accent);
   font-weight: 800;
-  color: var(--accent);
 }
-.price-block--detail .price-block__cash strong {
-  color: var(--accent);
+.price-block__transfer-line strong {
+  font-size: 42px;
+  line-height: 1;
 }
-.price-block--detail .price-block__installments {
-  font-size: 16px;
+.price-block__transfer-line span {
+  font-size: 20px;
+}
+.price-block__installments-detail {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  color: var(--ink);
+}
+.price-block__installments-detail strong,
+.price-block__installments-detail span {
+  color: var(--ink);
+  font-weight: 700;
+}
+.price-block__installments-detail strong {
+  font-size: 22px;
+}
+.price-block__installments-detail span {
+  font-size: 18px;
+}
+@media (max-width: 720px) {
+  .price-block__transfer-line strong {
+    font-size: 34px;
+  }
+  .price-block__transfer-line span {
+    font-size: 18px;
+  }
+  .price-block__installments-detail strong {
+    font-size: 19px;
+  }
+  .price-block__installments-detail span {
+    font-size: 16px;
+  }
 }
 .card__variants { display: flex; gap: 6px; margin-top: 8px; }
 .card__variant {

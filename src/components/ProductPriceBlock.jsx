@@ -70,7 +70,27 @@ export function ProductPriceBlock({ product, variant = "card" }) {
     return <div className={`price-block price-block--${variant}`}>Consultar precio</div>;
   }
 
-  const showListPrice = (pricing.hasDiscount || pricing.hasInstallmentMarkup) && variant !== "card";
+  const showListPrice = variant === "detail" || ((pricing.hasDiscount || pricing.hasInstallmentMarkup) && variant !== "card");
+
+  if (variant === "detail") {
+    return (
+      <div className="price-block price-block--detail">
+        {showListPrice && <div className="price-block__list">{formatArs(pricing.listPrice)}</div>}
+
+        <div className="price-block__transfer-line">
+          <strong>{formatArs(pricing.cashPrice)}</strong>
+          <span>con Transferencia</span>
+        </div>
+
+        <div className="price-block__installments-detail">
+          <strong>
+            {pricing.installmentCount} cuotas de {formatArs(pricing.installmentPrice, { alwaysDecimals: true })}
+          </strong>
+          <span>sin interés</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`price-block price-block--${variant}`}>
