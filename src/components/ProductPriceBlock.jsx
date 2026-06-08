@@ -70,12 +70,10 @@ export function ProductPriceBlock({ product, variant = "card" }) {
     return <div className={`price-block price-block--${variant}`}>Consultar precio</div>;
   }
 
-  const showListPrice = variant === "detail" || ((pricing.hasDiscount || pricing.hasInstallmentMarkup) && variant !== "card");
-
   if (variant === "detail") {
     return (
       <div className="price-block price-block--detail">
-        {showListPrice && <div className="price-block__list">{formatArs(pricing.listPrice)}</div>}
+        <div className="price-block__summary">Total con tarjeta {formatArs(pricing.installmentTotal, { alwaysDecimals: true })}</div>
 
         <div className="price-block__transfer-line">
           <strong>{formatArs(pricing.cashPrice)}</strong>
@@ -92,8 +90,6 @@ export function ProductPriceBlock({ product, variant = "card" }) {
 
   return (
     <div className={`price-block price-block--${variant}`}>
-      {showListPrice && <div className="price-block__list">Precio de lista {formatArs(pricing.listPrice)}</div>}
-
       <div className="price-block__cash">
         <span>{variant === "detail" ? "Precio transferencia" : "Transferencia"}</span>
         <strong>{formatArs(pricing.cashPrice)}</strong>
