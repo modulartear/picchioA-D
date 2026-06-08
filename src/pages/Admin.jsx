@@ -2029,7 +2029,7 @@ export function Admin() {
                     return (
                       <div className="muted" style={{ fontSize: 13 }}>
                         Transferencia: ${preview.cashPrice.toLocaleString("es-AR", { maximumFractionDigits: 2 })} · 3 cuotas de $
-                        {preview.installmentPrice.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {preview.installmentPrice.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} con tarjeta
                       </div>
                     );
                   })()}
