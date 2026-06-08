@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "../components/icons";
+import { ProductPriceBlock } from "../components/ProductPriceBlock";
 import { useCart } from "../context/CartContext";
 import { useProduct, useProductsByCategory } from "../hooks/useCatalog";
-
-function fmtPrice(product) {
-  const price = product?.price;
-  if (Number.isFinite(price)) return `$${price.toLocaleString("es-AR")}`;
-  return "Consultar al asesor";
-}
 
 export function Product() {
   const { id } = useParams();
@@ -200,10 +195,7 @@ export function Product() {
             )}
 
             <div className="pdp__price">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span>Precio</span>
-                <span style={{ fontSize: 16, color: "var(--muted)", fontWeight: 500 }}>{fmtPrice(product)}</span>
-              </div>
+              <ProductPriceBlock product={product} variant="detail" />
             </div>
 
             <div className="qv__row" style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
@@ -278,7 +270,7 @@ export function Product() {
                   <div className="card__body">
                     <span className="card__cat">{p.catName}</span>
                     <div className="card__title">{p.name}</div>
-                    <div className="card__price">{Number.isFinite(p?.price) ? `$${p.price.toLocaleString("es-AR")}` : "Consultar precio"}</div>
+                    <ProductPriceBlock product={p} />
                   </div>
                 </div>
               ))}

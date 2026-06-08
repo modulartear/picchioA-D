@@ -383,6 +383,60 @@ input, select, textarea { font: inherit; color: inherit; }
 .card__title { font-size: 15px; font-weight: 600; line-height: 1.3; }
 .card__cat { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
 .card__price { font-size: 14px; font-weight: 500; margin-top: 4px; color: var(--ink-2); }
+.price-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.price-block__list {
+  font-size: 12px;
+  color: var(--muted);
+}
+.price-block__cash,
+.price-block__installments {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.price-block__cash span,
+.price-block__installments span {
+  color: var(--muted);
+}
+.price-block__cash strong,
+.price-block__installments strong {
+  color: var(--ink);
+}
+.price-block--card .price-block__cash {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.price-block--card .price-block__installments {
+  font-size: 13px;
+}
+.price-block--modal .price-block__cash,
+.price-block--modal .price-block__installments {
+  font-size: 14px;
+}
+.price-block--detail {
+  gap: 8px;
+}
+.price-block--detail .price-block__list {
+  font-size: 14px;
+}
+.price-block--detail .price-block__cash {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent);
+}
+.price-block--detail .price-block__cash strong {
+  color: var(--accent);
+}
+.price-block--detail .price-block__installments {
+  font-size: 16px;
+}
 .card__variants { display: flex; gap: 6px; margin-top: 8px; }
 .card__variant {
   width: 16px; height: 16px;
@@ -862,7 +916,7 @@ input, select, textarea { font: inherit; color: inherit; }
 .pdp__title { font-family: var(--font-display); font-weight: 800; font-size: clamp(36px, 4.4vw, 56px); line-height: 1.02; margin: 0; }
 .pdp__sub { font-size: 14px; color: var(--muted); }
 .pdp__desc { color: var(--ink-2); line-height: 1.65; max-width: 56ch; }
-.pdp__price { font-size: 20px; font-weight: 600; padding: 16px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.pdp__price { padding: 16px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .pdp__actions { display: flex; gap: 12px; flex-wrap: wrap; }
 .pdp__accordion { margin-top: 8px; border-top: 1px solid var(--line); }
 .acc-item { border-bottom: 1px solid var(--line); }

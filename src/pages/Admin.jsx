@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth, db, firebaseConfigured } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
+import { getProductPricing } from "../components/ProductPriceBlock";
 import { DEFAULT_IMAGES } from "../services/catalog";
 import {
   deleteCategory,
@@ -171,6 +172,8 @@ export function Admin() {
       desc: "",
       imageUrl: "",
       price: "",
+      cashDiscountPercent: "",
+      installmentCoefficientPercent: "",
       badge: "",
       featured: false,
       active: true,
@@ -1093,6 +1096,24 @@ export function Admin() {
               if (!Number.isFinite(n) || n < 0) throw new Error("Precio inválido");
               return n;
             })();
+      const rawCashDiscountPercent = String(prodDraft.cashDiscountPercent || "").trim();
+      const cashDiscountPercent =
+        rawCashDiscountPercent.length === 0
+          ? deleteField()
+          : (() => {
+              const n = Number(rawCashDiscountPercent.replace(",", "."));
+              if (!Number.isFinite(n) || n < 0 || n > 100) throw new Error("Descuento por transferencia inválido");
+              return n;
+            })();
+      const rawInstallmentCoefficientPercent = String(prodDraft.installmentCoefficientPercent || "").trim();
+      const installmentCoefficientPercent =
+        rawInstallmentCoefficientPercent.length === 0
+          ? deleteField()
+          : (() => {
+              const n = Number(rawInstallmentCoefficientPercent.replace(",", "."));
+              if (!Number.isFinite(n) || n < 0) throw new Error("Coeficiente de cuotas inválido");
+              return n;
+            })();
 
       await upsertProduct(prodDraft.id, {
         id: prodDraft.id,
@@ -1104,6 +1125,8 @@ export function Admin() {
         imageUrl: prodDraft.imageUrl,
         image: prodDraft.imageUrl,
         price,
+        cashDiscountPercent,
+        installmentCoefficientPercent,
         badge: prodDraft.badge || "",
         featured: !!prodDraft.featured,
         active: !!prodDraft.active,
@@ -1128,6 +1151,8 @@ export function Admin() {
       desc: p.desc || "",
       imageUrl: p.imageUrl || p.image || "",
       price: p.price == null ? "" : String(p.price),
+      cashDiscountPercent: p.cashDiscountPercent == null ? "" : String(p.cashDiscountPercent),
+      installmentCoefficientPercent: p.installmentCoefficientPercent == null ? "" : String(p.installmentCoefficientPercent),
       badge: p.badge || "",
       featured: !!p.featured,
       active: p.active !== false,
@@ -1970,10 +1995,44 @@ export function Admin() {
                         onChange={(e) => setProdDraft((p) => ({ ...p, price: e.target.value }))}
                       />
                     </Field>
+                    <Field label="Descuento transferencia (%)">
+                      <input
+                        inputMode="decimal"
+                        value={prodDraft.cashDiscountPercent}
+                        placeholder="Ej: 10"
+                        onChange={(e) => setProdDraft((p) => ({ ...p, cashDiscountPercent: e.target.value }))}
+                      />
+                    </Field>
+                  </div>
+
+                  <div className="field-grid">
+                    <Field label="Coeficiente cuotas (%)">
+                      <input
+                        inputMode="decimal"
+                        value={prodDraft.installmentCoefficientPercent}
+                        placeholder="Ej: 15"
+                        onChange={(e) => setProdDraft((p) => ({ ...p, installmentCoefficientPercent: e.target.value }))}
+                      />
+                    </Field>
                     <Field label="Etiqueta">
                       <input value={prodDraft.badge} onChange={(e) => setProdDraft((p) => ({ ...p, badge: e.target.value }))} />
                     </Field>
                   </div>
+
+                  {(() => {
+                    const preview = getProductPricing({
+                      price: Number(String(prodDraft.price || "").replace(",", ".")),
+                      cashDiscountPercent: Number(String(prodDraft.cashDiscountPercent || "").replace(",", ".")),
+                      installmentCoefficientPercent: Number(String(prodDraft.installmentCoefficientPercent || "").replace(",", ".")),
+                    });
+                    if (!preview.hasPrice) return null;
+                    return (
+                      <div className="muted" style={{ fontSize: 13 }}>
+                        Transferencia: ${preview.cashPrice.toLocaleString("es-AR", { maximumFractionDigits: 2 })} · 3 cuotas de $
+                        {preview.installmentPrice.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    );
+                  })()}
 
                   <div className="field-grid">
                     <Field label="Destacado">
@@ -2147,27 +2206,35 @@ export function Admin() {
                 <span className="muted">{products.length}</span>
               </div>
               <div className="admin__list">
-                {products.map((p) => (
-                  <div key={p.id} className="admin__row">
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div className="admin__thumb" style={{ backgroundImage: `url(${p.imageUrl || p.image || ""})` }} />
-                      <div style={{ display: "flex", flexDirection: "column" }}>
-                        <b>{p.name}</b>
-                        <span className="muted" style={{ fontSize: 12 }}>
-                          {p.id} · {p.cat} {Number.isFinite(p?.price) ? `· $${p.price.toLocaleString("es-AR")}` : ""} {p.active === false ? "· inactivo" : ""} {p.featured ? "· destacado" : ""}
-                        </span>
+                {products.map((p) => {
+                  const pricing = getProductPricing(p);
+                  return (
+                    <div key={p.id} className="admin__row">
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div className="admin__thumb" style={{ backgroundImage: `url(${p.imageUrl || p.image || ""})` }} />
+                        <div style={{ display: "flex", flexDirection: "column" }}>
+                          <b>{p.name}</b>
+                          <span className="muted" style={{ fontSize: 12 }}>
+                            {p.id} · {p.cat}
+                            {pricing.hasPrice ? ` · transf. $${pricing.cashPrice.toLocaleString("es-AR", { maximumFractionDigits: 2 })}` : ""}
+                            {pricing.hasDiscount ? ` · desc. ${pricing.cashDiscountPercent}%` : ""}
+                            {pricing.hasInstallmentMarkup ? ` · coef. cuotas ${pricing.installmentCoefficientPercent}%` : ""}
+                            {p.active === false ? " · inactivo" : ""}
+                            {p.featured ? " · destacado" : ""}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button className="btn btn--ghost btn--sm" onClick={() => onEditProduct(p)}>
+                          Editar
+                        </button>
+                        <button className="btn btn--ghost btn--sm" onClick={() => onDeleteProduct(p.id)}>
+                          Eliminar
+                        </button>
                       </div>
                     </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button className="btn btn--ghost btn--sm" onClick={() => onEditProduct(p)}>
-                        Editar
-                      </button>
-                      <button className="btn btn--ghost btn--sm" onClick={() => onDeleteProduct(p.id)}>
-                        Eliminar
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { ProductPriceBlock } from "./ProductPriceBlock";
 import { Icon } from "./icons";
-
-function fmtPrice(product) {
-  const price = product?.price;
-  if (Number.isFinite(price)) return `$${price.toLocaleString("es-AR")}`;
-  return "Consultar";
-}
 
 export function QuickView() {
   const nav = useNavigate();
@@ -62,12 +57,7 @@ export function QuickView() {
             )}
 
             <div className="qv__row" style={{ paddingTop: 8, borderTop: "1px solid var(--line)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: 600 }}>Precio</span>
-                <span className="muted" style={{ fontSize: 14 }}>
-                  {fmtPrice(product)}
-                </span>
-              </div>
+              <ProductPriceBlock product={product} variant="modal" />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 600 }}>Entrega</span>
                 <span className="muted" style={{ fontSize: 14 }}>
