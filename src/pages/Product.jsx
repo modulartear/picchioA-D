@@ -4,6 +4,7 @@ import { Icon } from "../components/icons";
 import { ProductPriceBlock } from "../components/ProductPriceBlock";
 import { useCart } from "../context/CartContext";
 import { useProduct, useProductsByCategory } from "../hooks/useCatalog";
+import { findGalleryIndexForColor, getProductGallery } from "../utils/productGallery";
 
 export function Product() {
   const { id } = useParams();
@@ -74,9 +75,11 @@ export function Product() {
 
   useEffect(() => {
     if (product) {
-      setColor(product.colors?.[0]);
+      const firstColor = product.colors?.[0];
+      const gal = getProductGallery(product);
+      setColor(firstColor);
       setQty(1);
-      setImgIdx(0);
+      setImgIdx(findGalleryIndexForColor(gal, firstColor?.name));
       setAccordion((prev) => prev || "");
       const firstKey = (accordionItems[0]?.key || "").trim();
       setAccordion(firstKey);
@@ -85,9 +88,7 @@ export function Product() {
   }, [id, product, accordionItems]);
 
   const gallery = useMemo(() => {
-    const main = product?.imageUrl || product?.image;
-    if (!main) return [];
-    return [main, main, main, main];
+    return getProductGallery(product);
   }, [product]);
 
   const related = useMemo(() => {
@@ -149,12 +150,18 @@ export function Product() {
       <div className="container">
         <div className="pdp">
           <div className="pdp__gallery">
-            <div className="pdp__main" style={{ backgroundImage: `url(${gallery[imgIdx]})` }}>
+            <div className="pdp__main" style={{ backgroundImage: `url(${gallery[imgIdx]?.url || ""})` }}>
               {product.badge && <span className="card__badge" style={{ position: "absolute", top: 16, left: 16 }}>{product.badge}</span>}
             </div>
             <div className="pdp__thumbs">
               {gallery.map((g, i) => (
-                <button key={i} className={"pdp__thumb" + (imgIdx === i ? " active" : "")} onClick={() => setImgIdx(i)} style={{ backgroundImage: `url(${g})` }} aria-label={`Foto ${i + 1}`} />
+                <button
+                  key={g.id || i}
+                  className={"pdp__thumb" + (imgIdx === i ? " active" : "")}
+                  onClick={() => setImgIdx(i)}
+                  style={{ backgroundImage: `url(${g.url})` }}
+                  aria-label={`Foto ${i + 1}`}
+                />
               ))}
             </div>
           </div>
@@ -185,7 +192,10 @@ export function Product() {
                       key={c.name}
                       className={"swatch" + (color?.name === c.name ? " active" : "")}
                       style={{ background: c.hex }}
-                      onClick={() => setColor(c)}
+                      onClick={() => {
+                        setColor(c);
+                        setImgIdx(findGalleryIndexForColor(gallery, c.name));
+                      }}
                       title={c.name}
                       aria-label={c.name}
                     />

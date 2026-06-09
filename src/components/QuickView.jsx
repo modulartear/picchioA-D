@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { ProductPriceBlock } from "./ProductPriceBlock";
 import { Icon } from "./icons";
+import { getProductImageUrlForColor } from "../utils/productGallery";
 
 export function QuickView() {
   const nav = useNavigate();
@@ -22,6 +23,7 @@ export function QuickView() {
   }, [setQuickViewProduct]);
 
   if (!product) return null;
+  const imgUrl = getProductImageUrlForColor(product, color?.name) || String(product.imageUrl || product.image || "");
 
   return (
     <div className={"modal-backdrop open"} onClick={() => setQuickViewProduct(null)}>
@@ -30,7 +32,7 @@ export function QuickView() {
           <Icon.Close />
         </button>
         <div className="qv">
-          <div className="qv__media" style={{ backgroundImage: `url(${product.imageUrl || product.image})` }}>
+          <div className="qv__media" style={{ backgroundImage: `url(${imgUrl})` }}>
             {product.badge && <span className="card__badge" style={{ position: "absolute", top: 18, left: 18 }}>{product.badge}</span>}
           </div>
           <div className="qv__body">

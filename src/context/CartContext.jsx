@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { getProductImageUrlForColor } from "../utils/productGallery";
 
 const CartCtx = createContext(null);
 
@@ -43,6 +44,7 @@ export function CartProvider({ children }) {
     const priceFromProduct = Number.isFinite(product?.price) ? product.price : null;
     const priceAmount = priceFromProduct ?? (Number.isFinite(product?.priceAmount) ? product.priceAmount : null);
     const priceLabel = fmtMoney(priceAmount) ?? product.priceLabel ?? null;
+    const image = getProductImageUrlForColor(product, color?.name) || product.imageUrl || product.image;
     setItems((prev) => {
       const existing = prev.find((x) => x.uid === uid);
       if (existing) return prev.map((x) => (x.uid === uid ? { ...x, qty: x.qty + 1 } : x));
@@ -52,7 +54,7 @@ export function CartProvider({ children }) {
           uid,
           id: product.id,
           name: product.name,
-          image: product.imageUrl || product.image,
+          image,
           color,
           qty: 1,
           priceAmount,

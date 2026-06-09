@@ -171,6 +171,7 @@ export function Admin() {
       tagline: "",
       desc: "",
       imageUrl: "",
+      gallery: [],
       price: "",
       cashDiscountPercent: "",
       installmentCoefficientPercent: "",
@@ -185,6 +186,7 @@ export function Admin() {
   );
   const [prodDraft, setProdDraft] = useState(blankProduct);
   const [uploading, setUploading] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
   const [colorName, setColorName] = useState("");
   const [colorHex, setColorHex] = useState("#111111");
 
@@ -1087,6 +1089,16 @@ export function Admin() {
 
     try {
       const catName = deriveCatName(prodDraft.cat);
+      const galleryRaw = Array.isArray(prodDraft.gallery) ? prodDraft.gallery : [];
+      const galleryClean = galleryRaw
+        .map((g, idx) => ({
+          id: String(g?.id || `img_${idx}`),
+          url: String(g?.url || g?.imageUrl || g?.image || "").trim(),
+          colorName: String(g?.colorName || "").trim(),
+          order: Number.isFinite(g?.order) ? g.order : idx,
+        }))
+        .filter((g) => g.url.length > 0)
+        .map((g, idx) => ({ ...g, order: idx }));
       const rawPrice = String(prodDraft.price || "").trim();
       const price =
         rawPrice.length === 0
@@ -1124,6 +1136,7 @@ export function Admin() {
         desc: prodDraft.desc,
         imageUrl: prodDraft.imageUrl,
         image: prodDraft.imageUrl,
+        gallery: galleryClean.length > 0 ? galleryClean : deleteField(),
         price,
         cashDiscountPercent,
         installmentCoefficientPercent,
@@ -1142,6 +1155,17 @@ export function Admin() {
   }
 
   function onEditProduct(p) {
+    const galleryRaw = Array.isArray(p.gallery) ? p.gallery : [];
+    const gallery = galleryRaw
+      .map((g, idx) => ({
+        id: String(g?.id || `img_${idx}`),
+        url: String(g?.url || g?.imageUrl || g?.image || "").trim(),
+        colorName: String(g?.colorName || "").trim(),
+        order: Number.isFinite(g?.order) ? g.order : idx,
+      }))
+      .filter((g) => g.url.length > 0)
+      .map((g, idx) => ({ ...g, order: idx }));
+
     setProdDraft({
       id: p.id || p.docId || p._id || p.id,
       name: p.name || "",
@@ -1150,6 +1174,7 @@ export function Admin() {
       tagline: p.tagline || "",
       desc: p.desc || "",
       imageUrl: p.imageUrl || p.image || "",
+      gallery,
       price: p.price == null ? "" : String(p.price),
       cashDiscountPercent: p.cashDiscountPercent == null ? "" : String(p.cashDiscountPercent),
       installmentCoefficientPercent: p.installmentCoefficientPercent == null ? "" : String(p.installmentCoefficientPercent),
@@ -1198,6 +1223,60 @@ export function Admin() {
     } finally {
       setUploading(false);
     }
+  }
+
+  async function onUploadGalleryFiles(files) {
+    if (!files || files.length === 0) return;
+    if (!prodDraft.id) return setStatus({ type: "err", message: "Primero definí el ID del producto" });
+    if (uploadingGallery) return;
+    setUploadingGallery(true);
+    setStatus({ type: "", message: "" });
+    try {
+      const list = Array.from(files || []);
+      const uploaded = [];
+      for (const file of list) {
+        const url = await uploadProductImage({ productId: prodDraft.id, file });
+        uploaded.push({ id: makeId("img"), url, colorName: "", order: 0 });
+      }
+      setProdDraft((p) => {
+        const existing = Array.isArray(p.gallery) ? p.gallery : [];
+        const merged = [...existing, ...uploaded].map((x, idx) => ({ ...x, order: idx }));
+        return { ...p, gallery: merged };
+      });
+      setStatus({ type: "ok", message: `Fotos subidas (${uploaded.length})` });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    } finally {
+      setUploadingGallery(false);
+    }
+  }
+
+  function updateGalleryItem(id, patch) {
+    setProdDraft((p) => ({
+      ...p,
+      gallery: (Array.isArray(p.gallery) ? p.gallery : []).map((g) => (g?.id === id ? { ...g, ...patch } : g)),
+    }));
+  }
+
+  function removeGalleryItem(id) {
+    setProdDraft((p) => {
+      const next = (Array.isArray(p.gallery) ? p.gallery : []).filter((g) => g?.id !== id).map((g, idx) => ({ ...g, order: idx }));
+      return { ...p, gallery: next };
+    });
+  }
+
+  function moveGalleryItem(id, dir) {
+    setProdDraft((p) => {
+      const arr = Array.isArray(p.gallery) ? [...p.gallery] : [];
+      const idx = arr.findIndex((g) => g?.id === id);
+      if (idx < 0) return p;
+      const nextIdx = dir === "up" ? idx - 1 : idx + 1;
+      if (nextIdx < 0 || nextIdx >= arr.length) return p;
+      const tmp = arr[idx];
+      arr[idx] = arr[nextIdx];
+      arr[nextIdx] = tmp;
+      return { ...p, gallery: arr.map((g, i) => ({ ...g, order: i })) };
+    });
   }
 
   function onEditProject(p) {
@@ -1985,6 +2064,79 @@ export function Admin() {
                     {uploading ? "Subiendo..." : "Subir imagen a Storage"}
                     <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => onUploadImage(e.target.files?.[0])} disabled={uploading} />
                   </label>
+
+                  <Field label="Fotos adicionales (galería)">
+                    <div style={{ display: "grid", gap: 10 }}>
+                      <label className="btn btn--ghost" style={{ cursor: "pointer", justifyContent: "center" }}>
+                        {uploadingGallery ? "Subiendo..." : "Subir fotos"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          style={{ display: "none" }}
+                          onChange={(e) => onUploadGalleryFiles(e.target.files)}
+                          disabled={uploadingGallery}
+                        />
+                      </label>
+
+                      {(Array.isArray(prodDraft.gallery) ? prodDraft.gallery : []).length > 0 ? (
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                          {(prodDraft.gallery || []).map((g, idx) => {
+                            const url = String(g?.url || "");
+                            const isMain = url && url === String(prodDraft.imageUrl || "");
+                            const colorsList = Array.isArray(prodDraft.colors) ? prodDraft.colors : [];
+                            return (
+                              <div key={g.id || idx} style={{ border: "1px solid var(--line)", borderRadius: 14, overflow: "hidden", background: "var(--bg)" }}>
+                                <div style={{ height: 120, background: "var(--surface)" }}>
+                                  <div style={{ width: "100%", height: "100%", backgroundImage: `url(${url})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+                                </div>
+                                <div style={{ padding: 10, display: "grid", gap: 8 }}>
+                                  <select
+                                    value={String(g?.colorName || "")}
+                                    onChange={(e) => updateGalleryItem(g.id, { colorName: e.target.value })}
+                                    style={{
+                                      border: "1px solid var(--line-strong)",
+                                      padding: "10px 12px",
+                                      borderRadius: 12,
+                                      background: "transparent",
+                                      fontSize: 13,
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    <option value="">Sin color</option>
+                                    {colorsList.map((c) => (
+                                      <option key={c.name} value={c.name}>
+                                        {c.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                                    <button type="button" className={"btn btn--ghost btn--sm" + (isMain ? " btn--accent" : "")} onClick={() => setProdDraft((p) => ({ ...p, imageUrl: url }))} disabled={!url}>
+                                      Principal
+                                    </button>
+                                    <button type="button" className="btn btn--ghost btn--sm" onClick={() => moveGalleryItem(g.id, "up")} disabled={idx === 0}>
+                                      ↑
+                                    </button>
+                                    <button type="button" className="btn btn--ghost btn--sm" onClick={() => moveGalleryItem(g.id, "down")} disabled={idx === (prodDraft.gallery || []).length - 1}>
+                                      ↓
+                                    </button>
+                                    <button type="button" className="btn btn--ghost btn--sm" onClick={() => removeGalleryItem(g.id)} style={{ marginLeft: "auto" }}>
+                                      Quitar
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="muted">Sin fotos adicionales.</span>
+                      )}
+                      <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+                        Podés asignar cada foto a un color del producto. En la ficha, al tocar el color, se muestra la foto asociada.
+                      </p>
+                    </div>
+                  </Field>
 
                   <div className="field-grid">
                     <Field label="Precio (ARS)">
