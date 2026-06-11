@@ -28,10 +28,18 @@ export function Header() {
   const { cartCount, setCartOpen, setCotizadorOpen, showToast } = useCart();
   const { theme, setTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     setMobileOpen(false);
   }, [loc.pathname]);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const navItems = useMemo(
     () => [
@@ -64,7 +72,7 @@ export function Header() {
 
   return (
     <>
-      <header className="header">
+      <header className={"header" + (scrolled ? " header--scrolled" : "")}>
         <div className="container header__inner">
           <Link className="header__logo header__logo--center" to="/">
             <img className="header__logo-img" src="/assets/ChatGPT%20Image%2029%20may%202026%2C%2019_13_38.png" alt="Picchio" />

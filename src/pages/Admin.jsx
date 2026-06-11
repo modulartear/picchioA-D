@@ -166,6 +166,7 @@ export function Admin() {
     () => ({
       id: "",
       name: "",
+      brand: "",
       cat: "sillas",
       catName: "Sillas",
       tagline: "",
@@ -189,6 +190,11 @@ export function Admin() {
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [colorName, setColorName] = useState("");
   const [colorHex, setColorHex] = useState("#111111");
+  const [productFilters, setProductFilters] = useState({ search: "", cat: "", brand: "" });
+  const [selectedProductIds, setSelectedProductIds] = useState([]);
+  const [bulkPriceMode, setBulkPriceMode] = useState("percent");
+  const [bulkPriceValue, setBulkPriceValue] = useState("");
+  const [bulkPriceBusy, setBulkPriceBusy] = useState(false);
 
   const blankCortinas = useMemo(
     () => ({
@@ -259,6 +265,37 @@ export function Admin() {
     ],
     [],
   );
+
+  const normalizeText = (value) => String(value || "").trim().toLowerCase();
+
+  const productBrandOptions = useMemo(() => {
+    const set = new Set();
+    for (const p of products) {
+      const brand = String(p?.brand || "").trim();
+      if (brand) set.add(brand);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    const search = normalizeText(productFilters.search);
+    const cat = normalizeText(productFilters.cat);
+    const brand = normalizeText(productFilters.brand);
+    return products.filter((p) => {
+      if (cat && normalizeText(p.cat) !== cat) return false;
+      if (brand && normalizeText(p.brand) !== brand) return false;
+      if (!search) return true;
+      const haystack = [p.name, p.id, p.cat, p.catName, p.brand].map(normalizeText).join(" ");
+      return haystack.includes(search);
+    });
+  }, [productFilters, products]);
+
+  const selectedFilteredCount = useMemo(
+    () => filteredProducts.filter((p) => selectedProductIds.includes(p.id)).length,
+    [filteredProducts, selectedProductIds],
+  );
+
+  const allFilteredSelected = filteredProducts.length > 0 && selectedFilteredCount === filteredProducts.length;
 
   function describeError(err) {
     const code = err?.code ? String(err.code) : "";
@@ -386,6 +423,10 @@ export function Admin() {
       unsubLeads();
     };
   }, [authed, isAdmin]);
+
+  useEffect(() => {
+    setSelectedProductIds((prev) => prev.filter((id) => products.some((p) => p.id === id)));
+  }, [products]);
 
   useEffect(() => {
     if (!authed || !isAdmin || !firebaseConfigured || !db) return;
@@ -1130,6 +1171,7 @@ export function Admin() {
       await upsertProduct(prodDraft.id, {
         id: prodDraft.id,
         name: prodDraft.name,
+        brand: String(prodDraft.brand || "").trim(),
         cat: prodDraft.cat,
         catName,
         tagline: prodDraft.tagline,
@@ -1169,6 +1211,7 @@ export function Admin() {
     setProdDraft({
       id: p.id || p.docId || p._id || p.id,
       name: p.name || "",
+      brand: p.brand || "",
       cat: p.cat || "sillas",
       catName: p.catName || deriveCatName(p.cat || "sillas"),
       tagline: p.tagline || "",
@@ -1196,6 +1239,53 @@ export function Admin() {
     setColorName("");
     setColorHex("#111111");
     setTab("products");
+  }
+
+  function toggleProductSelection(id) {
+    setSelectedProductIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  function toggleSelectAllFiltered(checked) {
+    const ids = filteredProducts.map((p) => p.id);
+    setSelectedProductIds((prev) => {
+      if (checked) return Array.from(new Set([...prev, ...ids]));
+      return prev.filter((id) => !ids.includes(id));
+    });
+  }
+
+  async function onApplyBulkPriceUpdate() {
+    const selectedProducts = products.filter((p) => selectedProductIds.includes(p.id));
+    if (selectedProducts.length === 0) return setStatus({ type: "err", message: "Seleccioná al menos un producto" });
+
+    const raw = String(bulkPriceValue || "").trim().replace(",", ".");
+    const value = Number(raw);
+    if (!Number.isFinite(value)) return setStatus({ type: "err", message: "Ingresá un valor válido para el cambio masivo" });
+
+    setBulkPriceBusy(true);
+    setStatus({ type: "", message: "" });
+    try {
+      for (const p of selectedProducts) {
+        const currentPrice = Number(p?.price);
+        if (!Number.isFinite(currentPrice) || currentPrice < 0) continue;
+
+        let nextPrice = currentPrice;
+        if (bulkPriceMode === "percent") nextPrice = currentPrice * (1 + value / 100);
+        if (bulkPriceMode === "amount") nextPrice = currentPrice + value;
+        if (bulkPriceMode === "set") nextPrice = value;
+
+        nextPrice = Math.round(nextPrice);
+        if (!Number.isFinite(nextPrice) || nextPrice < 0) continue;
+
+        await upsertProduct(p.id, { price: nextPrice });
+      }
+
+      setStatus({ type: "ok", message: `Precios actualizados en ${selectedProducts.length} producto(s)` });
+      setBulkPriceValue("");
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    } finally {
+      setBulkPriceBusy(false);
+    }
   }
 
   async function onDeleteProduct(id) {
@@ -2047,9 +2137,14 @@ export function Admin() {
                       </select>
                     </Field>
                   </div>
-                  <Field label="Nombre">
-                    <input value={prodDraft.name} onChange={(e) => setProdDraft((p) => ({ ...p, name: e.target.value }))} />
-                  </Field>
+                  <div className="field-grid">
+                    <Field label="Nombre">
+                      <input value={prodDraft.name} onChange={(e) => setProdDraft((p) => ({ ...p, name: e.target.value }))} />
+                    </Field>
+                    <Field label="Marca">
+                      <input value={prodDraft.brand} placeholder="Ej: Tommy Hilfiger" onChange={(e) => setProdDraft((p) => ({ ...p, brand: e.target.value }))} />
+                    </Field>
+                  </div>
                   <Field label="Subtítulo">
                     <input value={prodDraft.tagline} onChange={(e) => setProdDraft((p) => ({ ...p, tagline: e.target.value }))} />
                   </Field>
@@ -2356,19 +2451,98 @@ export function Admin() {
             <div className="admin__panel">
               <div className="admin__panel-head">
                 <b>Listado</b>
-                <span className="muted">{products.length}</span>
+                <span className="muted">
+                  {filteredProducts.length} de {products.length}
+                </span>
+              </div>
+              <div style={{ padding: 14, display: "grid", gap: 12 }}>
+                <div className="field-grid">
+                  <Field label="Buscar producto">
+                    <input
+                      value={productFilters.search}
+                      placeholder="Nombre, ID o marca"
+                      onChange={(e) => setProductFilters((f) => ({ ...f, search: e.target.value }))}
+                    />
+                  </Field>
+                  <Field label="Filtrar por categoría">
+                    <select value={productFilters.cat} onChange={(e) => setProductFilters((f) => ({ ...f, cat: e.target.value }))}>
+                      <option value="">Todas</option>
+                      {categories.map((c) => (
+                        <option key={c.slug || c.id} value={c.slug || c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Filtrar por marca">
+                    <select value={productFilters.brand} onChange={(e) => setProductFilters((f) => ({ ...f, brand: e.target.value }))}>
+                      <option value="">Todas</option>
+                      {productBrandOptions.map((brand) => (
+                        <option key={brand} value={brand}>
+                          {brand}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+
+                <div style={{ display: "grid", gap: 10, border: "1px solid var(--line)", borderRadius: 14, padding: 12, background: "var(--surface)" }}>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 600 }}>
+                      <input type="checkbox" checked={allFilteredSelected} onChange={(e) => toggleSelectAllFiltered(e.target.checked)} />
+                      Seleccionar filtrados
+                    </label>
+                    <span className="muted" style={{ fontSize: 12 }}>
+                      {selectedProductIds.length} seleccionado(s)
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => setSelectedProductIds([])}
+                      disabled={selectedProductIds.length === 0}
+                    >
+                      Limpiar selección
+                    </button>
+                  </div>
+
+                  <div className="field-grid">
+                    <Field label="Cambio masivo">
+                      <select value={bulkPriceMode} onChange={(e) => setBulkPriceMode(e.target.value)}>
+                        <option value="percent">Ajustar por %</option>
+                        <option value="amount">Sumar / restar monto</option>
+                        <option value="set">Reemplazar precio</option>
+                      </select>
+                    </Field>
+                    <Field label="Valor">
+                      <input
+                        inputMode="decimal"
+                        value={bulkPriceValue}
+                        placeholder={bulkPriceMode === "percent" ? "Ej: 10 o -5" : bulkPriceMode === "amount" ? "Ej: 15000 o -5000" : "Ej: 125000"}
+                        onChange={(e) => setBulkPriceValue(e.target.value)}
+                      />
+                    </Field>
+                    <Field label="Aplicar">
+                      <button type="button" className="btn btn--accent" onClick={onApplyBulkPriceUpdate} disabled={bulkPriceBusy || selectedProductIds.length === 0}>
+                        {bulkPriceBusy ? "Actualizando..." : "Cambiar precios"}
+                      </button>
+                    </Field>
+                  </div>
+                </div>
               </div>
               <div className="admin__list">
-                {products.map((p) => {
+                {filteredProducts.map((p) => {
                   const pricing = getProductPricing(p);
+                  const checked = selectedProductIds.includes(p.id);
                   return (
                     <div key={p.id} className="admin__row">
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleProductSelection(p.id)} aria-label={`Seleccionar ${p.name}`} />
                         <div className="admin__thumb" style={{ backgroundImage: `url(${p.imageUrl || p.image || ""})` }} />
                         <div style={{ display: "flex", flexDirection: "column" }}>
                           <b>{p.name}</b>
                           <span className="muted" style={{ fontSize: 12 }}>
                             {p.id} · {p.cat}
+                            {p.brand ? ` · ${p.brand}` : ""}
                             {pricing.hasPrice ? ` · transf. $${pricing.cashPrice.toLocaleString("es-AR", { maximumFractionDigits: 2 })}` : ""}
                             {pricing.hasDiscount ? ` · desc. ${pricing.cashDiscountPercent}%` : ""}
                             {pricing.hasInstallmentMarkup ? ` · coef. cuotas ${pricing.installmentCoefficientPercent}%` : ""}
@@ -2388,6 +2562,11 @@ export function Admin() {
                     </div>
                   );
                 })}
+                {filteredProducts.length === 0 && (
+                  <div className="admin__row">
+                    <span className="muted">No hay productos para ese filtro.</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
