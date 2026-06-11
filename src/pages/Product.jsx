@@ -19,6 +19,7 @@ export function Product() {
   const [qty, setQty] = useState(1);
   const [accordion, setAccordion] = useState("");
   const [imgIdx, setImgIdx] = useState(0);
+  const [previewImageUrl, setPreviewImageUrl] = useState("");
 
   const defaultEnvioText = "Envío gratis en Venado Tuerto. Envío a todo el país coordinado por transporte propio o flete.";
   const defaultGarantiaText = "Garantía Picchio: 1 año en tapicería, 2 años en estructura y 5 años en herrajes.";
@@ -79,6 +80,7 @@ export function Product() {
       const gal = getProductGallery(product);
       setColor(firstColor);
       setQty(1);
+      setPreviewImageUrl("");
       setImgIdx(findGalleryIndexForColor(gal, firstColor?.name));
       setAccordion((prev) => prev || "");
       const firstKey = (accordionItems[0]?.key || "").trim();
@@ -86,6 +88,14 @@ export function Product() {
     }
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [id, product, accordionItems]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") setPreviewImageUrl("");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const gallery = useMemo(() => {
     return getProductGallery(product);
@@ -150,18 +160,21 @@ export function Product() {
       <div className="container">
         <div className="pdp">
           <div className="pdp__gallery">
-            <div className="pdp__main" style={{ backgroundImage: `url(${gallery[imgIdx]?.url || ""})` }}>
+            <button type="button" className="pdp__main" onClick={() => setPreviewImageUrl(gallery[imgIdx]?.url || "")} aria-label="Ver imagen ampliada">
+              {gallery[imgIdx]?.url ? <img className="pdp__main-img" src={gallery[imgIdx].url} alt={product.name} /> : null}
               {product.badge && <span className="card__badge" style={{ position: "absolute", top: 16, left: 16 }}>{product.badge}</span>}
-            </div>
+              {gallery[imgIdx]?.url ? <span className="pdp__zoom-hint">Click para ampliar</span> : null}
+            </button>
             <div className="pdp__thumbs">
               {gallery.map((g, i) => (
                 <button
                   key={g.id || i}
                   className={"pdp__thumb" + (imgIdx === i ? " active" : "")}
                   onClick={() => setImgIdx(i)}
-                  style={{ backgroundImage: `url(${g.url})` }}
                   aria-label={`Foto ${i + 1}`}
-                />
+                >
+                  <img className="pdp__thumb-img" src={g.url} alt={`${product.name} ${i + 1}`} loading="lazy" />
+                </button>
               ))}
             </div>
           </div>
@@ -256,6 +269,17 @@ export function Product() {
           </div>
         </div>
       </div>
+
+      {previewImageUrl ? (
+        <div className="modal-backdrop open" onClick={() => setPreviewImageUrl("")}>
+          <div className="image-preview" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <button className="modal__close" onClick={() => setPreviewImageUrl("")} aria-label="Cerrar">
+              <Icon.Close />
+            </button>
+            <img className="image-preview__img" src={previewImageUrl} alt={product.name} />
+          </div>
+        </div>
+      ) : null}
 
       {related.length > 0 && (
         <section className="section" style={{ paddingTop: 56 }}>

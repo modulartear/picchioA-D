@@ -477,10 +477,9 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
                       role="listitem"
                       aria-label={c.name}
                       title={c.name}
-                      style={{
-                        backgroundImage: c.imageUrl ? `url(${c.imageUrl})` : "none",
-                      }}
-                    />
+                    >
+                      {c.imageUrl ? <img src={c.imageUrl} alt={c.name} className="colorcat__cell-img" loading="lazy" /> : null}
+                    </button>
                   );
                 })}
               </div>
@@ -490,12 +489,9 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
             </div>
             <div className="colorcat__right">
               <div className="colorcat__preview">
-                <div
-                  className="colorcat__zoom"
-                  style={{
-                    backgroundImage: previewColor?.imageUrl ? `url(${previewColor.imageUrl})` : "none",
-                  }}
-                />
+                <div className="colorcat__zoom">
+                  {previewColor?.imageUrl ? <img src={previewColor.imageUrl} alt={previewColor?.name || "Color"} className="colorcat__zoom-img" /> : null}
+                </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <b style={{ fontSize: 14 }}>{previewColor?.name || "Elegí un color"}</b>
                   <span className="muted" style={{ fontSize: 12 }}>
