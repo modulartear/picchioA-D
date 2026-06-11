@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { Icon } from "./icons";
@@ -27,6 +27,7 @@ export function Header() {
   const loc = useLocation();
   const { cartCount, setCartOpen, setCotizadorOpen, showToast } = useCart();
   const { theme, setTheme } = useTheme();
+  const headerRef = useRef(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -40,6 +41,26 @@ export function Header() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    const updateHeaderHeight = () => {
+      const el = headerRef.current;
+      if (!el) return;
+      const h = Math.ceil(el.getBoundingClientRect().height || 0);
+      if (h > 0) document.documentElement.style.setProperty("--header-h", `${h}px`);
+    };
+    updateHeaderHeight();
+    const onResize = () => updateHeaderHeight();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
 
   const navItems = useMemo(
     () => [
@@ -73,9 +94,19 @@ export function Header() {
   return (
     <>
       <header className={"header" + (scrolled ? " header--scrolled" : "")}>
-        <div className="container header__inner">
+        <div ref={headerRef} className="container header__inner">
           <Link className="header__logo header__logo--center" to="/">
-            <img className="header__logo-img" src="/assets/ChatGPT%20Image%2029%20may%202026%2C%2019_13_38.png" alt="Picchio" />
+            <img
+              className="header__logo-img"
+              src="/assets/ChatGPT%20Image%2029%20may%202026%2C%2019_13_38.png"
+              alt="Picchio"
+              onLoad={() => {
+                const el = headerRef.current;
+                if (!el) return;
+                const h = Math.ceil(el.getBoundingClientRect().height || 0);
+                if (h > 0) document.documentElement.style.setProperty("--header-h", `${h}px`);
+              }}
+            />
           </Link>
 
           <div className="header__bar">
