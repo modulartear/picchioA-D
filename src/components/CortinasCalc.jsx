@@ -54,6 +54,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
   const [colorId, setColorId] = useState("");
   const [colorModalOpen, setColorModalOpen] = useState(false);
   const [colorModalPreviewId, setColorModalPreviewId] = useState("");
+  const [colorImagePreviewUrl, setColorImagePreviewUrl] = useState("");
   const [includeInstall, setIncludeInstall] = useState(true);
   const [chainMetal, setChainMetal] = useState(false);
   const [systemBlack, setSystemBlack] = useState(false);
@@ -175,20 +176,27 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
   useEffect(() => {
     if (!colorModalOpen) return;
     const onKey = (e) => {
-      if (e.key === "Escape") setColorModalOpen(false);
+      if (e.key !== "Escape") return;
+      if (colorImagePreviewUrl) {
+        setColorImagePreviewUrl("");
+        return;
+      }
+      setColorModalOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [colorModalOpen]);
+  }, [colorImagePreviewUrl, colorModalOpen]);
 
   const openColorModal = () => {
     if (availableColors.length === 0) return;
+    setColorImagePreviewUrl("");
     setColorModalOpen(true);
   };
 
   const confirmColor = () => {
     if (!previewColor) return;
     setColorId(previewColor.id);
+    setColorImagePreviewUrl("");
     setColorModalOpen(false);
   };
 
@@ -489,9 +497,15 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
             </div>
             <div className="colorcat__right">
               <div className="colorcat__preview">
-                <div className="colorcat__zoom">
+                <button
+                  type="button"
+                  className="colorcat__zoom colorcat__zoom--clickable"
+                  onClick={() => previewColor?.imageUrl && setColorImagePreviewUrl(previewColor.imageUrl)}
+                  aria-label="Ver imagen ampliada"
+                >
                   {previewColor?.imageUrl ? <img src={previewColor.imageUrl} alt={previewColor?.name || "Color"} className="colorcat__zoom-img" /> : null}
-                </div>
+                  {previewColor?.imageUrl ? <span className="colorcat__zoom-hint">Click para ampliar</span> : null}
+                </button>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   <b style={{ fontSize: 14 }}>{previewColor?.name || "Elegí un color"}</b>
                   <span className="muted" style={{ fontSize: 12 }}>
@@ -508,12 +522,24 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
       </div>
     ) : null;
 
+  const ColorImagePreview = colorImagePreviewUrl ? (
+    <div className="modal-backdrop open" onClick={() => setColorImagePreviewUrl("")}>
+      <div className="image-preview" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <button className="modal__close" onClick={() => setColorImagePreviewUrl("")} aria-label="Cerrar">
+          <Icon.Close />
+        </button>
+        <img className="image-preview__img" src={colorImagePreviewUrl} alt={previewColor?.name || "Color"} />
+      </div>
+    </div>
+  ) : null;
+
   if (variant === "section") {
     return (
       <section className="section" id="cortinas-calc" style={{ background: "var(--surface)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
         <div className="container">
           {Inner}
           {ColorModal}
+          {ColorImagePreview}
         </div>
       </section>
     );
@@ -523,6 +549,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
     <div className="container" style={{ paddingTop: 32, paddingBottom: 80 }}>
       {Inner}
       {ColorModal}
+      {ColorImagePreview}
     </div>
   );
 }
