@@ -347,7 +347,7 @@ input, select, textarea { font: inherit; color: inherit; }
   position: relative;
   overflow: hidden;
   border-radius: var(--radius);
-  --card-image-inset: 30px;
+  --card-image-inset: 0px;
 }
 .card__img {
   position: absolute; inset: var(--card-image-inset);
@@ -358,7 +358,7 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .card:hover .card__img { transform: scale(1.01); }
 @media (max-width: 760px) {
-  .card__media { --card-image-inset: 18px; }
+  .card__media { --card-image-inset: 0px; }
 }
 .card__media-placeholder {
   position: absolute; inset: 0;
