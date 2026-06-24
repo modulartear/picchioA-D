@@ -342,18 +342,24 @@ input, select, textarea { font: inherit; color: inherit; }
   cursor: pointer;
 }
 .card__media {
-  aspect-ratio: 4/5;
+  aspect-ratio: 1/1;
   background: var(--surface-2);
   position: relative;
   overflow: hidden;
   border-radius: var(--radius);
+  --card-image-inset: 30px;
 }
 .card__img {
-  position: absolute; inset: 0;
-  background-size: cover; background-position: center;
+  position: absolute; inset: var(--card-image-inset);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
   transition: transform .6s ease;
 }
-.card:hover .card__img { transform: scale(1.04); }
+.card:hover .card__img { transform: scale(1.01); }
+@media (max-width: 760px) {
+  .card__media { --card-image-inset: 18px; }
+}
 .card__media-placeholder {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
