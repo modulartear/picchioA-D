@@ -70,8 +70,9 @@ export function Home() {
   const { setCotizadorOpen } = useCart();
   const { loading, error, data } = useHomeContent();
   const { featured, categories, projects, img, hero } = data;
-  const clsByIndex = ["proj--a", "proj--b", "proj--c", "proj--d", "proj--e"];
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
+  const featuredAside = featured.slice(0, 2);
+  const featuredGrid = featured.slice(2);
 
   const heroSlides = useMemo(() => {
     const raw = Array.isArray(hero?.slides) ? hero.slides : [];
@@ -92,11 +93,21 @@ export function Home() {
   }, [heroSlides]);
 
   function projectCover(p) {
-    const cover = String(p?.coverUrl || p?.image || p?.imageUrl || "").trim();
-    if (cover) return cover;
     const media = Array.isArray(p?.media) ? p.media : [];
+    const cover = String(p?.coverUrl || p?.image || p?.imageUrl || "").trim();
+    const coverMatch = cover ? media.find((m) => String(m?.url || "").trim() === cover) : null;
+    if (cover) {
+      return {
+        url: cover,
+        type: String(coverMatch?.type || "image"),
+      };
+    }
     const firstImg = media.find((m) => String(m?.type || "image") === "image" && m?.url);
-    return String(firstImg?.url || media[0]?.url || "").trim();
+    const fallback = firstImg || media[0] || null;
+    return {
+      url: String(fallback?.url || "").trim(),
+      type: String(fallback?.type || "image"),
+    };
   }
 
   if (error) {
@@ -211,23 +222,24 @@ export function Home() {
               </h2>
             </div>
             <div className="section-head__aside">
-              <p className="muted">Una selección de productos con stock o entrega rápida. Tocá cualquiera para vista rápida o agregar al carrito.</p>
-              <a
-                href="/cat/sillas"
-                className="link-arrow"
-                onClick={(e) => {
-                  e.preventDefault();
-                  nav("/cat/sillas");
-                }}
-                style={{ marginTop: 14 }}
-              >
-                Ver todos los productos <Icon.Arrow style={{ width: 14, height: 14 }} />
-              </a>
+              {featuredAside.length > 0 ? (
+                <div className="featured-aside">
+                  {featuredAside.map((p) => {
+                    const coverUrl = getProductPrimaryImageUrl(p);
+                    return (
+                      <button key={p.id} type="button" className="featured-aside__item" onClick={() => nav("/product/" + p.id)}>
+                        <span className="featured-aside__media" style={{ backgroundImage: coverUrl ? `url(${coverUrl})` : "none" }} />
+                        <span className="featured-aside__name">{p.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
           </div>
 
           <div className="product-grid">
-            {featured.map((p) => (
+            {(featuredGrid.length > 0 ? featuredGrid : featured).map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>
@@ -305,11 +317,18 @@ export function Home() {
               const list = (projects || []).filter((p) => p?.active !== false);
               if (list.length === 0) return <div className="muted">Todavía no hay proyectos publicados.</div>;
               return list.map((p, idx) => (
-                <div className={"proj " + (p.cls || clsByIndex[idx % clsByIndex.length])} key={p.id} onClick={() => nav("/project/" + p.id)}>
-                  <div className="proj__media" style={{ backgroundImage: `url(${projectCover(p)})` }} />
+                <div className="proj" key={p.id || idx} onClick={() => nav("/project/" + p.id)}>
+                  {(() => {
+                    const cover = projectCover(p);
+                    if (!cover?.url) return <div className="proj__media proj__media--empty" />;
+                    if (cover.type === "video") {
+                      return <video className="proj__media proj__media--video" src={cover.url} muted playsInline autoPlay loop preload="metadata" />;
+                    }
+                    return <div className="proj__media" style={{ backgroundImage: `url(${cover.url})` }} />;
+                  })()}
                   <div className="proj__caption">
-                    <span>{p.title || "Proyecto"}</span>
-                    <span style={{ opacity: 0.85, fontWeight: 500 }}>{p.tag || ""}</span>
+                    <span className="proj__title">{p.title || "Proyecto"}</span>
+                    {p.tag ? <span className="proj__tag">{p.tag}</span> : null}
                   </div>
                 </div>
               ));
