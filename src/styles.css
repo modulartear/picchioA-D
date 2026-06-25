@@ -371,12 +371,12 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .card__img {
   position: absolute; inset: var(--card-image-inset);
-  background-size: 100% 100%;
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
   transition: transform .6s ease;
 }
-.card:hover .card__img { transform: scale(1.01); }
+.card:hover .card__img { transform: none; }
 @media (max-width: 760px) {
   .card__media { --card-image-inset: 0px; }
 }
