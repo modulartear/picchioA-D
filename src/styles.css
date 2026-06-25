@@ -582,6 +582,15 @@ input, select, textarea { font: inherit; color: inherit; }
   border: 1px solid var(--line);
 }
 .proj__media { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform .45s ease; }
+.proj__media--video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--surface-2);
+}
+.proj__media--empty {
+  background: var(--surface-2);
+}
 .proj:hover .proj__media { transform: scale(1.03); }
 .proj__caption {
   position: absolute; left: 14px; bottom: 14px; right: 14px;
