@@ -56,6 +56,16 @@ export const DEFAULT_IMAGES = {
     "https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&w=900&q=80",
 };
 
+export const DEFAULT_HERO = {
+  slides: [DEFAULT_IMAGES.heroLiving, DEFAULT_IMAGES.heroKitchen].filter(Boolean),
+  titleLine1: "Hacemos los muebles",
+  titleLine2: "",
+  highlightText: "que imaginás.",
+  lead: "Diseño, fabricación propia y entrega a todo el país. Cocinas, placards, sillas, sillones y cortinas roller.",
+  primaryCtaLabel: "Ver muebles a medida",
+  secondaryCtaLabel: "Cotizar mi proyecto",
+};
+
 export const DEFAULT_CHECKOUT = {
   shippingOptions: [
     {
@@ -165,13 +175,30 @@ export async function fetchTestimonials() {
 export async function fetchSiteContent() {
   assertConfigured();
   const snap = await getDoc(doc(db, "site", "content"));
-  if (!snap.exists()) return { img: DEFAULT_IMAGES, checkout: DEFAULT_CHECKOUT };
+  if (!snap.exists()) return { img: DEFAULT_IMAGES, hero: DEFAULT_HERO, checkout: DEFAULT_CHECKOUT };
   const data = snap.data() || {};
   const checkoutRaw = data.checkout && typeof data.checkout === "object" ? data.checkout : {};
   const shippingOptions = Array.isArray(checkoutRaw.shippingOptions) ? checkoutRaw.shippingOptions : DEFAULT_CHECKOUT.shippingOptions;
   const paymentOptions = Array.isArray(checkoutRaw.paymentOptions) ? checkoutRaw.paymentOptions : DEFAULT_CHECKOUT.paymentOptions;
+  const heroRaw = data.hero && typeof data.hero === "object" ? data.hero : {};
+  const heroSlidesRaw = Array.isArray(heroRaw.slides) ? heroRaw.slides : [];
+  const heroSlides = heroSlidesRaw
+    .map((x) => String(x || "").trim())
+    .filter(Boolean)
+    .slice(0, 4);
   return {
     img: { ...DEFAULT_IMAGES, ...(data.img || {}) },
+    hero: {
+      ...DEFAULT_HERO,
+      ...heroRaw,
+      slides: heroSlides.length > 0 ? heroSlides : DEFAULT_HERO.slides,
+      titleLine1: String(heroRaw.titleLine1 || DEFAULT_HERO.titleLine1 || "").trim(),
+      titleLine2: String(heroRaw.titleLine2 || DEFAULT_HERO.titleLine2 || "").trim(),
+      highlightText: String(heroRaw.highlightText || DEFAULT_HERO.highlightText || "").trim(),
+      lead: String(heroRaw.lead || DEFAULT_HERO.lead || "").trim(),
+      primaryCtaLabel: String(heroRaw.primaryCtaLabel || DEFAULT_HERO.primaryCtaLabel || "").trim(),
+      secondaryCtaLabel: String(heroRaw.secondaryCtaLabel || DEFAULT_HERO.secondaryCtaLabel || "").trim(),
+    },
     checkout: { shippingOptions, paymentOptions },
   };
 }

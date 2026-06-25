@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CortinasCalc } from "../components/CortinasCalc";
 import { CatIcon, Icon } from "../components/icons";
@@ -59,8 +59,27 @@ export function Home() {
   const nav = useNavigate();
   const { setCotizadorOpen } = useCart();
   const { loading, error, data } = useHomeContent();
-  const { featured, categories, projects, testimonials, img } = data;
+  const { featured, categories, projects, testimonials, img, hero } = data;
   const clsByIndex = ["proj--a", "proj--b", "proj--c", "proj--d", "proj--e"];
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
+
+  const heroSlides = useMemo(() => {
+    const raw = Array.isArray(hero?.slides) ? hero.slides : [];
+    const clean = raw.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 4);
+    return clean.length > 0 ? clean : [String(img.heroLiving || "").trim()].filter(Boolean);
+  }, [hero, img.heroLiving]);
+
+  useEffect(() => {
+    setHeroSlideIndex(0);
+  }, [heroSlides.length]);
+
+  useEffect(() => {
+    if (heroSlides.length <= 1) return;
+    const id = window.setInterval(() => {
+      setHeroSlideIndex((prev) => (prev + 1) % heroSlides.length);
+    }, 4500);
+    return () => window.clearInterval(id);
+  }, [heroSlides]);
 
   function projectCover(p) {
     const cover = String(p?.coverUrl || p?.image || p?.imageUrl || "").trim();
@@ -92,22 +111,48 @@ export function Home() {
   return (
     <div>
       <section className="hero">
-        <div className="hero__media" style={{ backgroundImage: `url(${img.heroLiving})` }} />
+        {heroSlides.map((slide, idx) => (
+          <div key={`${slide}-${idx}`} className={"hero__media" + (idx === heroSlideIndex ? " active" : "")} style={{ backgroundImage: `url(${slide})` }} />
+        ))}
+        <div className="hero__overlay" />
         <div className="container hero__content">
           <h1 className="hero__title">
-            Hacemos los muebles
-            <br />
-            <em>que imaginás.</em>
+            {hero?.titleLine1 || "Hacemos los muebles"}
+            {String(hero?.titleLine2 || "").trim() ? (
+              <>
+                <br />
+                {hero.titleLine2}
+              </>
+            ) : null}
+            {String(hero?.highlightText || "").trim() ? (
+              <>
+                <br />
+                <em>{hero.highlightText}</em>
+              </>
+            ) : null}
           </h1>
-          <p className="hero__lead">Diseño, fabricación propia y entrega a todo el país. Cocinas, placards, sillas, sillones y cortinas roller.</p>
+          <p className="hero__lead">{hero?.lead || "Diseño, fabricación propia y entrega a todo el país. Cocinas, placards, sillas, sillones y cortinas roller."}</p>
           <div className="hero__ctas">
             <button className="btn btn--primary btn--lg" onClick={() => nav("/cat/a-medida")}>
-              Ver muebles a medida <Icon.Arrow style={{ width: 18, height: 18 }} />
+              {hero?.primaryCtaLabel || "Ver muebles a medida"} <Icon.Arrow style={{ width: 18, height: 18 }} />
             </button>
             <button className="btn btn--ghost btn--lg" onClick={() => setCotizadorOpen(true)}>
-              Cotizar mi proyecto
+              {hero?.secondaryCtaLabel || "Cotizar mi proyecto"}
             </button>
           </div>
+          {heroSlides.length > 1 && (
+            <div className="hero__dots" aria-label="Slides del hero">
+              {heroSlides.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className={"hero__dot" + (idx === heroSlideIndex ? " active" : "")}
+                  onClick={() => setHeroSlideIndex(idx)}
+                  aria-label={`Ir al slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

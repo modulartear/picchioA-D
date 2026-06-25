@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  DEFAULT_HERO,
   DEFAULT_CHECKOUT,
   fetchCategories,
   fetchFeaturedProducts,
@@ -151,7 +152,7 @@ export function useProject(id) {
 }
 
 export function useSiteContent() {
-  const [state, setState] = useState({ loading: true, data: { img: {}, checkout: DEFAULT_CHECKOUT }, error: "" });
+  const [state, setState] = useState({ loading: true, data: { img: {}, hero: DEFAULT_HERO, checkout: DEFAULT_CHECKOUT }, error: "" });
 
   useEffect(() => {
     let alive = true;
@@ -162,7 +163,7 @@ export function useSiteContent() {
       })
       .catch((e) => {
         if (!alive) return;
-        setState({ loading: false, data: { img: {}, checkout: DEFAULT_CHECKOUT }, error: describeError(e) });
+        setState({ loading: false, data: { img: {}, hero: DEFAULT_HERO, checkout: DEFAULT_CHECKOUT }, error: describeError(e) });
       });
     return () => {
       alive = false;
@@ -218,6 +219,7 @@ export function useHomeContent() {
   const data = useMemo(() => {
     return {
       img: site.data.img || {},
+      hero: site.data.hero || DEFAULT_HERO,
       featured: (featured.data || []).filter((p) => p?.active !== false),
       categories: (categories.data || []).filter((c) => c?.active !== false),
       projects: projects.data || [],

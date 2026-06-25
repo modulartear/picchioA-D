@@ -234,9 +234,12 @@ input, select, textarea { font: inherit; color: inherit; }
 .hero__media {
   position: absolute; inset: 0;
   background-size: cover; background-position: center;
+  opacity: 0;
+  transition: opacity .9s ease;
 }
-.hero__media::after {
-  content: ""; position: absolute; inset: 0;
+.hero__media.active { opacity: 1; }
+.hero__overlay {
+  position: absolute; inset: 0;
   background: linear-gradient(180deg, rgba(0,0,0,.05) 0%, rgba(0,0,0,.45) 80%);
 }
 .hero__content {
@@ -269,6 +272,23 @@ input, select, textarea { font: inherit; color: inherit; }
   margin: 0 0 32px;
 }
 .hero__ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+.hero__dots {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+}
+.hero__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.4);
+  border: 1px solid rgba(255,255,255,.65);
+  transition: transform .2s ease, background .2s ease;
+}
+.hero__dot.active {
+  background: #fff;
+  transform: scale(1.15);
+}
 .hero .btn--primary { background: #fff; color: #0F0F0F; }
 .hero .btn--primary:hover { background: var(--accent); color: #fff; }
 .hero .btn--ghost { color: #fff; border-color: rgba(255,255,255,.5); }

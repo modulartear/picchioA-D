@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { auth, db, firebaseConfigured } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
 import { getProductPricing } from "../components/ProductPriceBlock";
-import { DEFAULT_IMAGES } from "../services/catalog";
+import { DEFAULT_HERO, DEFAULT_IMAGES } from "../services/catalog";
 import {
   deleteCategory,
   deleteProject,
@@ -139,8 +139,17 @@ export function Admin() {
   const [instagramToken, setInstagramToken] = useState("");
   const [syncingInstagram, setSyncingInstagram] = useState(false);
 
-  const [siteImagesDraft, setSiteImagesDraft] = useState({ heroLiving: "", aboutShop: "" });
-  const [uploadingSiteHero, setUploadingSiteHero] = useState(false);
+  const [siteImagesDraft, setSiteImagesDraft] = useState({
+    heroSlides: DEFAULT_HERO.slides,
+    heroTitleLine1: DEFAULT_HERO.titleLine1,
+    heroTitleLine2: DEFAULT_HERO.titleLine2,
+    heroHighlightText: DEFAULT_HERO.highlightText,
+    heroLead: DEFAULT_HERO.lead,
+    heroPrimaryCtaLabel: DEFAULT_HERO.primaryCtaLabel,
+    heroSecondaryCtaLabel: DEFAULT_HERO.secondaryCtaLabel,
+    aboutShop: "",
+  });
+  const [uploadingHeroSlides, setUploadingHeroSlides] = useState(false);
   const [uploadingAboutShop, setUploadingAboutShop] = useState(false);
   const [savingSiteImages, setSavingSiteImages] = useState(false);
 
@@ -485,11 +494,20 @@ export function Admin() {
     if (!siteContentDoc.data) return;
     if (tab === "settings" && settingsTab === "images") return;
     const img = siteContentDoc.data?.img && typeof siteContentDoc.data.img === "object" ? siteContentDoc.data.img : {};
+    const heroRaw = siteContentDoc.data?.hero && typeof siteContentDoc.data.hero === "object" ? siteContentDoc.data.hero : {};
+    const heroSlidesRaw = Array.isArray(heroRaw.slides) ? heroRaw.slides : [];
+    const heroSlides = heroSlidesRaw.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 4);
     setSiteImagesDraft({
-      heroLiving: String(img?.heroLiving || DEFAULT_IMAGES.heroLiving || "").trim(),
+      heroSlides: heroSlides.length > 0 ? heroSlides : DEFAULT_HERO.slides,
+      heroTitleLine1: String(heroRaw?.titleLine1 || DEFAULT_HERO.titleLine1 || "").trim(),
+      heroTitleLine2: String(heroRaw?.titleLine2 || DEFAULT_HERO.titleLine2 || "").trim(),
+      heroHighlightText: String(heroRaw?.highlightText || DEFAULT_HERO.highlightText || "").trim(),
+      heroLead: String(heroRaw?.lead || DEFAULT_HERO.lead || "").trim(),
+      heroPrimaryCtaLabel: String(heroRaw?.primaryCtaLabel || DEFAULT_HERO.primaryCtaLabel || "").trim(),
+      heroSecondaryCtaLabel: String(heroRaw?.secondaryCtaLabel || DEFAULT_HERO.secondaryCtaLabel || "").trim(),
       aboutShop: String(img?.aboutShop || DEFAULT_IMAGES.aboutShop || "").trim(),
     });
-  }, [DEFAULT_IMAGES.aboutShop, DEFAULT_IMAGES.heroLiving, settingsTab, siteContentDoc.data, tab]);
+  }, [DEFAULT_HERO, DEFAULT_IMAGES.aboutShop, settingsTab, siteContentDoc.data, tab]);
 
   useEffect(() => {
     try {
@@ -709,12 +727,25 @@ export function Admin() {
     setSavingSiteImages(true);
     setStatus({ type: "", message: "" });
     try {
+      const heroSlides = (Array.isArray(siteImagesDraft.heroSlides) ? siteImagesDraft.heroSlides : [])
+        .map((x) => String(x || "").trim())
+        .filter(Boolean)
+        .slice(0, 4);
       await setDoc(
         doc(db, "site", "content"),
         {
           img: {
-            heroLiving: String(siteImagesDraft.heroLiving || "").trim(),
+            heroLiving: String(heroSlides[0] || DEFAULT_HERO.slides[0] || DEFAULT_IMAGES.heroLiving || "").trim(),
             aboutShop: String(siteImagesDraft.aboutShop || "").trim(),
+          },
+          hero: {
+            slides: heroSlides,
+            titleLine1: String(siteImagesDraft.heroTitleLine1 || "").trim(),
+            titleLine2: String(siteImagesDraft.heroTitleLine2 || "").trim(),
+            highlightText: String(siteImagesDraft.heroHighlightText || "").trim(),
+            lead: String(siteImagesDraft.heroLead || "").trim(),
+            primaryCtaLabel: String(siteImagesDraft.heroPrimaryCtaLabel || "").trim(),
+            secondaryCtaLabel: String(siteImagesDraft.heroSecondaryCtaLabel || "").trim(),
           },
           updatedAt: serverTimestamp(),
         },
@@ -728,19 +759,54 @@ export function Admin() {
     }
   }
 
-  async function onUploadSiteHero(file) {
-    if (!file) return;
-    if (uploadingSiteHero) return;
-    setUploadingSiteHero(true);
+  function addHeroSlideField() {
+    setSiteImagesDraft((p) => {
+      const slides = Array.isArray(p.heroSlides) ? p.heroSlides : [];
+      if (slides.length >= 4) return p;
+      return { ...p, heroSlides: [...slides, ""] };
+    });
+  }
+
+  function updateHeroSlideField(idx, value) {
+    setSiteImagesDraft((p) => {
+      const slides = Array.isArray(p.heroSlides) ? [...p.heroSlides] : [];
+      if (idx < 0 || idx >= slides.length) return p;
+      slides[idx] = value;
+      return { ...p, heroSlides: slides.slice(0, 4) };
+    });
+  }
+
+  function removeHeroSlideField(idx) {
+    setSiteImagesDraft((p) => {
+      const slides = (Array.isArray(p.heroSlides) ? p.heroSlides : []).filter((_, i) => i !== idx);
+      return { ...p, heroSlides: slides.length > 0 ? slides : [""] };
+    });
+  }
+
+  async function onUploadSiteHeroSlides(fileList) {
+    const files = Array.from(fileList || []);
+    if (files.length === 0) return;
+    if (uploadingHeroSlides) return;
+    setUploadingHeroSlides(true);
     setStatus({ type: "", message: "" });
     try {
-      const url = await uploadSiteImage({ id: "heroLiving", file });
-      setSiteImagesDraft((p) => ({ ...p, heroLiving: String(url || "") }));
-      setStatus({ type: "ok", message: "Imagen subida" });
+      const existing = (Array.isArray(siteImagesDraft.heroSlides) ? siteImagesDraft.heroSlides : []).map((x) => String(x || "").trim());
+      const freeSlots = Math.max(0, 4 - existing.length);
+      const toUpload = files.slice(0, freeSlots || files.length).slice(0, 4);
+      const uploaded = [];
+      for (let i = 0; i < toUpload.length; i += 1) {
+        const url = await uploadSiteImage({ id: `hero-slide-${existing.length + i + 1}`, file: toUpload[i] });
+        uploaded.push(String(url || ""));
+      }
+      setSiteImagesDraft((p) => {
+        const base = (Array.isArray(p.heroSlides) ? p.heroSlides : []).map((x) => String(x || "").trim()).filter(Boolean);
+        return { ...p, heroSlides: [...base, ...uploaded].slice(0, 4) };
+      });
+      setStatus({ type: "ok", message: `Slides subidos (${uploaded.length})` });
     } catch (err) {
       setStatus({ type: "err", message: describeError(err) });
     } finally {
-      setUploadingSiteHero(false);
+      setUploadingHeroSlides(false);
     }
   }
 
@@ -1957,36 +2023,118 @@ export function Admin() {
                     </button>
                   </div>
                   <div style={{ padding: 14, display: "grid", gap: 12 }}>
-                    <Field label="Imagen principal (Home)">
+                    <Field label="Textos del hero (Home)">
                       <div style={{ display: "grid", gap: 10 }}>
-                        <input
-                          value={siteImagesDraft.heroLiving}
-                          onChange={(e) => setSiteImagesDraft((p) => ({ ...p, heroLiving: e.target.value }))}
-                          placeholder="https://..."
-                        />
-                        <label className="btn btn--ghost" style={{ cursor: "pointer", justifyContent: "center" }}>
-                          {uploadingSiteHero ? "Subiendo..." : "Subir imagen a Storage"}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            style={{ display: "none" }}
-                            onChange={(e) => onUploadSiteHero(e.target.files?.[0])}
-                            disabled={uploadingSiteHero}
+                        <div className="field-grid">
+                          <Field label="Línea 1">
+                            <input
+                              value={siteImagesDraft.heroTitleLine1}
+                              onChange={(e) => setSiteImagesDraft((p) => ({ ...p, heroTitleLine1: e.target.value }))}
+                              placeholder="Hacemos los muebles"
+                            />
+                          </Field>
+                          <Field label="Línea 2">
+                            <input
+                              value={siteImagesDraft.heroTitleLine2}
+                              onChange={(e) => setSiteImagesDraft((p) => ({ ...p, heroTitleLine2: e.target.value }))}
+                              placeholder="Opcional"
+                            />
+                          </Field>
+                        </div>
+                        <div className="field-grid">
+                          <Field label="Texto destacado">
+                            <input
+                              value={siteImagesDraft.heroHighlightText}
+                              onChange={(e) => setSiteImagesDraft((p) => ({ ...p, heroHighlightText: e.target.value }))}
+                              placeholder="que imaginás."
+                            />
+                          </Field>
+                          <Field label="Botón principal">
+                            <input
+                              value={siteImagesDraft.heroPrimaryCtaLabel}
+                              onChange={(e) => setSiteImagesDraft((p) => ({ ...p, heroPrimaryCtaLabel: e.target.value }))}
+                              placeholder="Ver muebles a medida"
+                            />
+                          </Field>
+                        </div>
+                        <div className="field-grid">
+                          <Field label="Botón secundario">
+                            <input
+                              value={siteImagesDraft.heroSecondaryCtaLabel}
+                              onChange={(e) => setSiteImagesDraft((p) => ({ ...p, heroSecondaryCtaLabel: e.target.value }))}
+                              placeholder="Cotizar mi proyecto"
+                            />
+                          </Field>
+                        </div>
+                        <Field label="Bajada">
+                          <textarea
+                            rows={3}
+                            value={siteImagesDraft.heroLead}
+                            onChange={(e) => setSiteImagesDraft((p) => ({ ...p, heroLead: e.target.value }))}
+                            placeholder="Texto descriptivo del hero"
                           />
-                        </label>
-                        {String(siteImagesDraft.heroLiving || "").trim() && (
-                          <div
-                            style={{
-                              height: 180,
-                              borderRadius: 14,
-                              border: "1px solid var(--line)",
-                              background: "var(--bg)",
-                              backgroundImage: `url(${siteImagesDraft.heroLiving})`,
-                              backgroundSize: "cover",
-                              backgroundPosition: "center",
-                            }}
-                          />
-                        )}
+                        </Field>
+                      </div>
+                    </Field>
+
+                    <Field label="Slider principal (Home)">
+                      <div style={{ display: "grid", gap: 10 }}>
+                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                          <label className="btn btn--ghost" style={{ cursor: "pointer", justifyContent: "center" }}>
+                            {uploadingHeroSlides ? "Subiendo..." : "Subir hasta 4 imágenes"}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              style={{ display: "none" }}
+                              onChange={(e) => onUploadSiteHeroSlides(e.target.files)}
+                              disabled={uploadingHeroSlides || (siteImagesDraft.heroSlides || []).length >= 4}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            className="btn btn--ghost btn--sm"
+                            onClick={addHeroSlideField}
+                            disabled={(siteImagesDraft.heroSlides || []).length >= 4}
+                          >
+                            Agregar slide
+                          </button>
+                        </div>
+
+                        <div style={{ display: "grid", gap: 12 }}>
+                          {(siteImagesDraft.heroSlides || []).map((slide, idx) => (
+                            <div key={idx} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 12, display: "grid", gap: 10 }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                                <b>Slide {idx + 1}</b>
+                                <button
+                                  type="button"
+                                  className="btn btn--ghost btn--sm"
+                                  onClick={() => removeHeroSlideField(idx)}
+                                  disabled={(siteImagesDraft.heroSlides || []).length <= 1}
+                                >
+                                  Quitar
+                                </button>
+                              </div>
+                              <input value={slide || ""} onChange={(e) => updateHeroSlideField(idx, e.target.value)} placeholder="https://..." />
+                              {String(slide || "").trim() && (
+                                <div
+                                  style={{
+                                    height: 160,
+                                    borderRadius: 14,
+                                    border: "1px solid var(--line)",
+                                    background: "var(--bg)",
+                                    backgroundImage: `url(${slide})`,
+                                    backgroundSize: "cover",
+                                    backgroundPosition: "center",
+                                  }}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+                          El slider reproduce las imágenes automáticamente en la home. Máximo 4 slides.
+                        </p>
                       </div>
                     </Field>
                     <Field label="Imagen Nosotros (Home)">
@@ -2022,7 +2170,7 @@ export function Admin() {
                       </div>
                     </Field>
                     <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                      Se guarda en <b>site/content.img</b>.
+                      Se guarda en <b>site/content.hero</b> y <b>site/content.img</b>.
                     </p>
                   </div>
                 </div>
