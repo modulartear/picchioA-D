@@ -59,7 +59,7 @@ export function Home() {
   const nav = useNavigate();
   const { setCotizadorOpen } = useCart();
   const { loading, error, data } = useHomeContent();
-  const { featured, categories, projects, testimonials, img, hero } = data;
+  const { featured, categories, projects, img, hero } = data;
   const clsByIndex = ["proj--a", "proj--b", "proj--c", "proj--d", "proj--e"];
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
 
@@ -335,37 +335,6 @@ export function Home() {
                 <div className="about__stat-label">líneas de producto</div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="container">
-          <div className="section-head">
-            <div>
-              <span className="eyebrow">Lo que dicen los clientes</span>
-              <h2 className="h-section" style={{ marginTop: 8 }}>
-                Calificación promedio
-                <br />
-                <em>4.9 / 5</em>
-              </h2>
-            </div>
-          </div>
-
-          <div className="quotes">
-            {testimonials.map((t) => (
-              <div className="quote" key={t.name}>
-                <div className="quote__stars">{"★★★★★".slice(0, t.stars || 5)}</div>
-                <p className="quote__text">"{t.text}"</p>
-                <div className="quote__author">
-                  <div className="quote__avatar">{t.initials}</div>
-                  <div>
-                    <div className="quote__name">{t.name}</div>
-                    <div className="quote__role">{t.role}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>

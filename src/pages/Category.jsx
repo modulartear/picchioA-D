@@ -175,28 +175,6 @@ export function Category() {
           </div>
         </div>
 
-        <div className="cat-toolbar">
-          <div className="container" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-            <div className="chips">
-              {["all", "Stock inmediato", "A medida", "Nuevos", "Más vendidos"].map((c) => (
-                <button key={c} className={"chip" + (activeChip === c ? " active" : "")} onClick={() => setActiveChip(c)}>
-                  {c === "all" ? "Todos" : c}
-                </button>
-              ))}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}>
-              <span className="muted">
-                {sorted.length} producto{sorted.length !== 1 ? "s" : ""}
-              </span>
-              <select value={sort} onChange={(e) => setSort(e.target.value)} style={{ border: "1px solid var(--line-strong)", padding: "8px 12px", borderRadius: 999, background: "transparent", fontSize: 13, fontWeight: 500 }}>
-                <option value="featured">Destacados</option>
-                <option value="new">Novedades</option>
-                <option value="name">Nombre A-Z</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
         <section className="section">
           <div className="container">
             {sorted.length > 0 ? (
