@@ -5,14 +5,14 @@ import { CatIcon, Icon } from "../components/icons";
 import { ProductPriceBlock } from "../components/ProductPriceBlock";
 import { useCart } from "../context/CartContext";
 import { useHomeContent } from "../hooks/useCatalog";
-import { getProductImageUrlForColor } from "../utils/productGallery";
+import { getProductImageUrlForColor, getProductPrimaryImageUrl } from "../utils/productGallery";
 
 function ProductCard({ product }) {
   const nav = useNavigate();
   const { addToCart, setQuickViewProduct } = useCart();
   const [color, setColor] = useState(product.colors?.[0]);
   const [variantTouched, setVariantTouched] = useState(false);
-  const mainImgUrl = String(product.imageUrl || product.image || "");
+  const mainImgUrl = getProductPrimaryImageUrl(product);
   const imgUrl = variantTouched ? getProductImageUrlForColor(product, color?.name) || mainImgUrl : mainImgUrl;
 
   useEffect(() => {

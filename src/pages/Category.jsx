@@ -5,13 +5,20 @@ import { Icon } from "../components/icons";
 import { ProductPriceBlock } from "../components/ProductPriceBlock";
 import { useCart } from "../context/CartContext";
 import { useCategories, useProductsByCategory, useSiteContent } from "../hooks/useCatalog";
-import { getProductImageUrlForColor } from "../utils/productGallery";
+import { getProductImageUrlForColor, getProductPrimaryImageUrl } from "../utils/productGallery";
 
 function ProductCard({ product }) {
   const nav = useNavigate();
   const { addToCart, setQuickViewProduct } = useCart();
   const [color, setColor] = useState(product.colors?.[0]);
-  const imgUrl = getProductImageUrlForColor(product, color?.name) || String(product.imageUrl || product.image || "");
+  const [variantTouched, setVariantTouched] = useState(false);
+  const mainImgUrl = getProductPrimaryImageUrl(product);
+  const imgUrl = variantTouched ? getProductImageUrlForColor(product, color?.name) || mainImgUrl : mainImgUrl;
+
+  useEffect(() => {
+    setColor(product.colors?.[0]);
+    setVariantTouched(false);
+  }, [product]);
 
   return (
     <div className="card" onClick={() => nav("/product/" + product.id)}>
@@ -42,7 +49,10 @@ function ProductCard({ product }) {
                 key={c.name}
                 className={"card__variant" + (color?.name === c.name ? " active" : "")}
                 style={{ background: c.hex }}
-                onClick={() => setColor(c)}
+                onClick={() => {
+                  setColor(c);
+                  setVariantTouched(true);
+                }}
                 aria-label={c.name}
                 title={c.name}
               />

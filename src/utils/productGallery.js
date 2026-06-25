@@ -30,6 +30,19 @@ export function getProductGallery(product) {
   return deduped;
 }
 
+export function getProductPrimaryImageUrl(product) {
+  const raw = Array.isArray(product?.gallery) ? product.gallery : [];
+  const firstGalleryUrl = raw
+    .map((it, idx) => ({
+      url: String(it?.url || it?.imageUrl || it?.image || "").trim(),
+      order: Number.isFinite(it?.order) ? it.order : idx,
+    }))
+    .filter((it) => it.url.length > 0)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))[0]?.url;
+
+  return String(firstGalleryUrl || product?.imageUrl || product?.image || "").trim();
+}
+
 export function findGalleryIndexForColor(gallery, colorName) {
   const target = norm(colorName);
   if (!target) return 0;
