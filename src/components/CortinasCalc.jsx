@@ -6,6 +6,7 @@ import { Icon } from "./icons";
 
 export function CortinasCalc({ variant = "section", cortinaImage }) {
   const { addCustomItem } = useCart();
+  const MEASURE_STEP_CM = 5;
 
   const toNumber = (v) => {
     const n = typeof v === "number" ? v : parseFloat(String(v ?? "").replace(",", "."));
@@ -42,7 +43,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
     },
   ];
 
-  const MOTOR_EXTRA = 95000;
+  const DEFAULT_MOTOR_EXTRA = 95000;
 
   const [config, setConfig] = useState(null);
   const [configLoaded, setConfigLoaded] = useState(false);
@@ -55,6 +56,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
   const [colorModalOpen, setColorModalOpen] = useState(false);
   const [colorModalPreviewId, setColorModalPreviewId] = useState("");
   const [colorImagePreviewUrl, setColorImagePreviewUrl] = useState("");
+  const [measureGuideOpen, setMeasureGuideOpen] = useState(false);
   const [includeInstall, setIncludeInstall] = useState(true);
   const [chainMetal, setChainMetal] = useState(false);
   const [systemBlack, setSystemBlack] = useState(false);
@@ -137,8 +139,10 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
 
   const pricing = useMemo(() => {
     const p = config?.pricing || {};
+    const rawMotorPrice = p.motorPrice;
     return {
       installPrice: toNumber(p.installPrice),
+      motorPrice: rawMotorPrice == null || String(rawMotorPrice).trim() === "" ? DEFAULT_MOTOR_EXTRA : toNumber(rawMotorPrice),
       chainMetalPrice: toNumber(p.chainMetalPrice),
       systemBlackPrice: toNumber(p.systemBlackPrice),
       zocaloPrice: toNumber(p.zocaloPrice),
@@ -146,13 +150,14 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
       extraHeightPrice: toNumber(p.extraHeightPrice),
     };
   }, [config]);
+  const measureGuideImageUrl = String(config?.measureGuideImageUrl || config?.guideImageUrl || "").trim();
 
   const widthM = Math.max(0, (Number(ancho) || 0) / 100);
   const heightM = Math.max(0, (Number(alto) || 0) / 100);
   const area = widthM * (heightM + 0.25);
   const t = fabrics.find((f) => f.key === tela) || fabrics[0] || DEFAULT_FABRICS[1];
   const baseTela = Math.round(area * toNumber(t.pricePerM2));
-  const extraMotor = accion === "motor" ? MOTOR_EXTRA : 0;
+  const extraMotor = accion === "motor" ? pricing.motorPrice : 0;
   const extraChainMetal = accion === "cadena" && chainMetal ? pricing.chainMetalPrice : 0;
   const extraInstall = includeInstall ? pricing.installPrice : 0;
   const extraSystemBlack = systemBlack ? pricing.systemBlackPrice : 0;
@@ -174,18 +179,22 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
   }, [availableColors, colorId, colorModalOpen]);
 
   useEffect(() => {
-    if (!colorModalOpen) return;
+    if (!colorModalOpen && !measureGuideOpen) return;
     const onKey = (e) => {
       if (e.key !== "Escape") return;
       if (colorImagePreviewUrl) {
         setColorImagePreviewUrl("");
         return;
       }
+          if (measureGuideOpen) {
+            setMeasureGuideOpen(false);
+            return;
+          }
       setColorModalOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [colorImagePreviewUrl, colorModalOpen]);
+  }, [colorImagePreviewUrl, colorModalOpen, measureGuideOpen]);
 
   const openColorModal = () => {
     if (availableColors.length === 0) return;
@@ -256,7 +265,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
                       border: "1px solid var(--line)",
                       background: "var(--surface-2)",
                       backgroundImage: opt.imageUrl ? `url(${opt.imageUrl})` : "none",
-                      backgroundSize: "contain",
+                      backgroundSize: "cover",
                       backgroundPosition: "center",
                       backgroundRepeat: "no-repeat",
                       marginBottom: 10,
@@ -307,14 +316,20 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
             <div className="cortcalc__measure">
               <label>Ancho</label>
               <div className="cortcalc__stepper">
-                <button type="button" onClick={() => setAncho((v) => Math.max(1, (Number(v) || 0) - 10))} aria-label="Restar ancho">
+                <button type="button" onClick={() => setAncho((v) => Math.max(MEASURE_STEP_CM, (Number(v) || 0) - MEASURE_STEP_CM))} aria-label="Restar ancho">
                   −
                 </button>
                 <div className="cortcalc__input">
-                  <input type="number" min="1" step="1" value={ancho} onChange={(e) => setAncho(Number(e.target.value) || 0)} />
+                  <input
+                    type="number"
+                    min={MEASURE_STEP_CM}
+                    step={MEASURE_STEP_CM}
+                    value={ancho}
+                    onChange={(e) => setAncho(Math.max(MEASURE_STEP_CM, Number(e.target.value) || MEASURE_STEP_CM))}
+                  />
                   <span>cm</span>
                 </div>
-                <button type="button" onClick={() => setAncho((v) => (Number(v) || 0) + 10)} aria-label="Sumar ancho">
+                <button type="button" onClick={() => setAncho((v) => (Number(v) || 0) + MEASURE_STEP_CM)} aria-label="Sumar ancho">
                   +
                 </button>
               </div>
@@ -322,14 +337,20 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
             <div className="cortcalc__measure">
               <label>Alto</label>
               <div className="cortcalc__stepper">
-                <button type="button" onClick={() => setAlto((v) => Math.max(1, (Number(v) || 0) - 10))} aria-label="Restar alto">
+                <button type="button" onClick={() => setAlto((v) => Math.max(MEASURE_STEP_CM, (Number(v) || 0) - MEASURE_STEP_CM))} aria-label="Restar alto">
                   −
                 </button>
                 <div className="cortcalc__input">
-                  <input type="number" min="1" step="1" value={alto} onChange={(e) => setAlto(Number(e.target.value) || 0)} />
+                  <input
+                    type="number"
+                    min={MEASURE_STEP_CM}
+                    step={MEASURE_STEP_CM}
+                    value={alto}
+                    onChange={(e) => setAlto(Math.max(MEASURE_STEP_CM, Number(e.target.value) || MEASURE_STEP_CM))}
+                  />
                   <span>cm</span>
                 </div>
-                <button type="button" onClick={() => setAlto((v) => (Number(v) || 0) + 10)} aria-label="Sumar alto">
+                <button type="button" onClick={() => setAlto((v) => (Number(v) || 0) + MEASURE_STEP_CM)} aria-label="Sumar alto">
                   +
                 </button>
               </div>
@@ -343,7 +364,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
                 Cadena
               </button>
               <button type="button" className={"chip" + (accion === "motor" ? " active" : "")} onClick={() => setAccion("motor")}>
-                Motorizada {MOTOR_EXTRA > 0 && <span style={{ marginLeft: 6, color: "var(--muted)", fontWeight: 500 }}>+ {fmt(MOTOR_EXTRA)}</span>}
+                Motorizada {pricing.motorPrice > 0 && <span style={{ marginLeft: 6, color: "var(--muted)", fontWeight: 500 }}>+ {fmt(pricing.motorPrice)}</span>}
               </button>
             </div>
           </div>
@@ -455,6 +476,9 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
           <button className="btn btn--accent btn--lg btn--block" onClick={handleAdd} disabled={added}>
             {added ? "✓ Agregado al pedido" : <>Agregar a mi presupuesto <Icon.Arrow style={{ width: 18, height: 18 }} /></>}
           </button>
+          <button type="button" className="btn btn--ghost btn--block" onClick={() => setMeasureGuideOpen(true)} style={{ marginTop: 8 }}>
+            Como medir mi cortina
+          </button>
           <a href="https://wa.me/543462415161" target="_blank" rel="noopener" className="btn btn--ghost btn--block" style={{ marginTop: 8 }}>
             <Icon.WhatsApp style={{ width: 16, height: 16 }} /> Consultar por WhatsApp
           </a>
@@ -533,6 +557,33 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
     </div>
   ) : null;
 
+  const MeasureGuideModal = measureGuideOpen ? (
+    <div className="modal-backdrop open" onClick={() => setMeasureGuideOpen(false)}>
+      <div className="modal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} style={{ width: "min(920px, 100%)" }}>
+        <button className="modal__close" onClick={() => setMeasureGuideOpen(false)} aria-label="Cerrar">
+          <Icon.Close />
+        </button>
+        <div style={{ display: "grid", gap: 16 }}>
+          <div>
+            <div className="eyebrow">Guia de medicion</div>
+            <h3 style={{ margin: "6px 0 0" }}>Como medir mi cortina</h3>
+          </div>
+          {measureGuideImageUrl ? (
+            <img
+              src={measureGuideImageUrl}
+              alt="Guia para medir cortinas"
+              style={{ width: "100%", maxHeight: "75vh", objectFit: "contain", borderRadius: 18, border: "1px solid var(--line)", background: "var(--surface)" }}
+            />
+          ) : (
+            <div className="muted" style={{ padding: 18, border: "1px solid var(--line)", borderRadius: 18, background: "var(--surface)" }}>
+              Todavia no hay una imagen cargada en el admin para mostrar la guia de medicion.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   if (variant === "section") {
     return (
       <section className="section" id="cortinas-calc" style={{ background: "var(--surface)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
@@ -540,6 +591,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
           {Inner}
           {ColorModal}
           {ColorImagePreview}
+          {MeasureGuideModal}
         </div>
       </section>
     );
@@ -550,6 +602,7 @@ export function CortinasCalc({ variant = "section", cortinaImage }) {
       {Inner}
       {ColorModal}
       {ColorImagePreview}
+      {MeasureGuideModal}
     </div>
   );
 }

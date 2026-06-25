@@ -235,6 +235,7 @@ export function Admin() {
       ],
       pricing: {
         installPrice: 0,
+        motorPrice: 95000,
         chainMetalPrice: 0,
         systemBlackPrice: 0,
         zocaloPrice: 0,
@@ -242,6 +243,7 @@ export function Admin() {
         extraHeightPrice: 0,
       },
       colors: [],
+      measureGuideImageUrl: "",
     }),
     [],
   );
@@ -249,6 +251,7 @@ export function Admin() {
   const [cortinasSaving, setCortinasSaving] = useState(false);
   const [cortinasUploading, setCortinasUploading] = useState("");
   const [cortinasColorUploading, setCortinasColorUploading] = useState("");
+  const [cortinasGuideUploading, setCortinasGuideUploading] = useState(false);
   const [cortinasSubtab, setCortinasSubtab] = useState("telas");
   const [selectedFabricId, setSelectedFabricId] = useState("");
   const [selectedColorId, setSelectedColorId] = useState("");
@@ -551,8 +554,10 @@ export function Admin() {
             .filter((c) => c.name.length > 0)
         : blankCortinas.colors;
 
+    const rawMotorPrice = cfg?.pricing?.motorPrice;
     const pricing = {
       installPrice: toNumber(cfg?.pricing?.installPrice),
+      motorPrice: rawMotorPrice == null || String(rawMotorPrice).trim() === "" ? blankCortinas.pricing.motorPrice : toNumber(rawMotorPrice),
       chainMetalPrice: toNumber(cfg?.pricing?.chainMetalPrice),
       systemBlackPrice: toNumber(cfg?.pricing?.systemBlackPrice),
       zocaloPrice: toNumber(cfg?.pricing?.zocaloPrice),
@@ -560,7 +565,12 @@ export function Admin() {
       extraHeightPrice: toNumber(cfg?.pricing?.extraHeightPrice),
     };
 
-    setCortinasDraft({ fabrics, pricing, colors });
+    setCortinasDraft({
+      fabrics,
+      pricing,
+      colors,
+      measureGuideImageUrl: String(cfg?.measureGuideImageUrl || cfg?.guideImageUrl || ""),
+    });
     setCortinasSubtab("telas");
     setSelectedFabricId(String((fabrics[0] && fabrics[0].id) || ""));
     setSelectedColorId(String((colors[0] && colors[0].id) || ""));
@@ -1040,8 +1050,10 @@ export function Admin() {
         }))
         .filter((c) => c.name.length > 0);
 
+      const rawMotorPrice = cortinasDraft?.pricing?.motorPrice;
       const pricing = {
         installPrice: toNumber(cortinasDraft?.pricing?.installPrice),
+        motorPrice: rawMotorPrice == null || String(rawMotorPrice).trim() === "" ? blankCortinas.pricing.motorPrice : toNumber(rawMotorPrice),
         chainMetalPrice: toNumber(cortinasDraft?.pricing?.chainMetalPrice),
         systemBlackPrice: toNumber(cortinasDraft?.pricing?.systemBlackPrice),
         zocaloPrice: toNumber(cortinasDraft?.pricing?.zocaloPrice),
@@ -1051,13 +1063,34 @@ export function Admin() {
 
       await upsertCategory("cortinas", {
         ...baseCategory,
-        cortinasConfig: { fabrics, pricing, colors },
+        cortinasConfig: {
+          fabrics,
+          pricing,
+          colors,
+          measureGuideImageUrl: String(cortinasDraft?.measureGuideImageUrl || "").trim(),
+        },
       });
       setStatus({ type: "ok", message: "Configuración de cortinas guardada" });
     } catch (err) {
       setStatus({ type: "err", message: describeError(err) });
     } finally {
       setCortinasSaving(false);
+    }
+  }
+
+  async function onUploadCortinasMeasureGuide(file) {
+    if (!file) return;
+    if (cortinasGuideUploading) return;
+    setStatus({ type: "", message: "" });
+    setCortinasGuideUploading(true);
+    try {
+      const url = await uploadSiteImage({ id: "cortinas-measure-guide", file });
+      setCortinasDraft((p) => ({ ...p, measureGuideImageUrl: String(url || "") }));
+      setStatus({ type: "ok", message: "Guia de medicion subida" });
+    } catch (err) {
+      setStatus({ type: "err", message: describeError(err) });
+    } finally {
+      setCortinasGuideUploading(false);
     }
   }
 
@@ -2759,6 +2792,13 @@ export function Admin() {
                     <Field label="Precio instalación">
                       <input type="number" value={cortinasDraft.pricing.installPrice} onChange={(e) => updateCortinasPricing({ installPrice: toNumber(e.target.value) })} />
                     </Field>
+                    <Field label="Precio motorizada">
+                      <input
+                        type="number"
+                        value={cortinasDraft.pricing.motorPrice}
+                        onChange={(e) => updateCortinasPricing({ motorPrice: e.target.value === "" ? "" : toNumber(e.target.value) })}
+                      />
+                    </Field>
                     <Field label="Cadena metálica">
                       <input type="number" value={cortinasDraft.pricing.chainMetalPrice} onChange={(e) => updateCortinasPricing({ chainMetalPrice: toNumber(e.target.value) })} />
                     </Field>
@@ -2773,6 +2813,45 @@ export function Admin() {
                     </Field>
                     <Field label="Precio extra alto">
                       <input type="number" value={cortinasDraft.pricing.extraHeightPrice} onChange={(e) => updateCortinasPricing({ extraHeightPrice: toNumber(e.target.value) })} />
+                    </Field>
+                  </div>
+                  <div style={{ marginTop: 16 }}>
+                    <Field label="Imagen modal 'Como medir mi cortina'">
+                      <div style={{ display: "grid", gap: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                          <div
+                            style={{
+                              width: 140,
+                              height: 96,
+                              borderRadius: 14,
+                              border: "1px solid var(--line)",
+                              backgroundColor: "var(--surface)",
+                              backgroundImage: cortinasDraft.measureGuideImageUrl ? `url(${cortinasDraft.measureGuideImageUrl})` : "none",
+                              backgroundSize: "contain",
+                              backgroundPosition: "center",
+                              backgroundRepeat: "no-repeat",
+                            }}
+                          />
+                          <label className="btn btn--ghost btn--sm" style={{ cursor: "pointer", justifyContent: "center" }}>
+                            {cortinasGuideUploading ? "Subiendo..." : "Subir imagen"}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              style={{ display: "none" }}
+                              disabled={cortinasGuideUploading}
+                              onChange={(e) => onUploadCortinasMeasureGuide(e.target.files?.[0])}
+                            />
+                          </label>
+                        </div>
+                        <input
+                          value={cortinasDraft.measureGuideImageUrl || ""}
+                          onChange={(e) => setCortinasDraft((p) => ({ ...p, measureGuideImageUrl: e.target.value }))}
+                          placeholder="URL de la imagen de guia"
+                        />
+                        <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+                          Esta imagen se muestra en el modal del boton “Como medir mi cortina”.
+                        </p>
+                      </div>
                     </Field>
                   </div>
                 </div>
