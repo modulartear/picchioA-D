@@ -71,8 +71,6 @@ export function Home() {
   const { loading, error, data } = useHomeContent();
   const { featured, categories, projects, img, hero } = data;
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
-  const featuredAside = featured.slice(0, 2);
-  const featuredGrid = featured.slice(2);
 
   const heroSlides = useMemo(() => {
     const raw = Array.isArray(hero?.slides) ? hero.slides : [];
@@ -221,25 +219,10 @@ export function Home() {
                 <em>esta temporada.</em>
               </h2>
             </div>
-            <div className="section-head__aside">
-              {featuredAside.length > 0 ? (
-                <div className="featured-aside">
-                  {featuredAside.map((p) => {
-                    const coverUrl = getProductPrimaryImageUrl(p);
-                    return (
-                      <button key={p.id} type="button" className="featured-aside__item" onClick={() => nav("/product/" + p.id)}>
-                        <span className="featured-aside__media" style={{ backgroundImage: coverUrl ? `url(${coverUrl})` : "none" }} />
-                        <span className="featured-aside__name">{p.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
           </div>
 
           <div className="product-grid">
-            {(featuredGrid.length > 0 ? featuredGrid : featured).map((p) => (
+            {featured.slice(0, 4).map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>

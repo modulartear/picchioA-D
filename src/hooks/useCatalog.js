@@ -177,9 +177,26 @@ export function useHomeContent() {
   const site = useSiteContent();
   const featured = useFeaturedProducts(8);
   const categories = useCategories();
+  const [allProducts, setAllProducts] = useState({ loading: true, data: [], error: "" });
 
   const [projects, setProjects] = useState({ loading: true, data: [], error: "" });
   const [testimonials, setTestimonials] = useState({ loading: true, data: [], error: "" });
+
+  useEffect(() => {
+    let alive = true;
+    fetchProducts()
+      .then((data) => {
+        if (!alive) return;
+        setAllProducts({ loading: false, data, error: "" });
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setAllProducts({ loading: false, data: [], error: describeError(e) });
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -213,19 +230,27 @@ export function useHomeContent() {
     };
   }, []);
 
-  const loading = site.loading || featured.loading || categories.loading || projects.loading || testimonials.loading;
-  const error = site.error || featured.error || categories.error || projects.error || testimonials.error;
+  const loading = site.loading || featured.loading || categories.loading || allProducts.loading || projects.loading || testimonials.loading;
+  const error = site.error || featured.error || categories.error || allProducts.error || projects.error || testimonials.error;
 
   const data = useMemo(() => {
+    const featuredActive = (featured.data || []).filter((p) => p?.active !== false);
+    const allActive = (allProducts.data || []).filter((p) => p?.active !== false);
+    const featuredIds = new Set(featuredActive.map((p) => p?.id).filter(Boolean));
+    const featuredFilled = [...featuredActive];
+    if (featuredFilled.length < 4) {
+      const fallback = allActive.filter((p) => !featuredIds.has(p?.id)).slice(0, 4 - featuredFilled.length);
+      featuredFilled.push(...fallback);
+    }
     return {
       img: site.data.img || {},
       hero: site.data.hero || DEFAULT_HERO,
-      featured: (featured.data || []).filter((p) => p?.active !== false),
+      featured: featuredFilled,
       categories: (categories.data || []).filter((c) => c?.active !== false),
       projects: projects.data || [],
       testimonials: testimonials.data || [],
     };
-  }, [site.data, featured.data, categories.data, projects.data, testimonials.data]);
+  }, [site.data, featured.data, allProducts.data, categories.data, projects.data, testimonials.data]);
 
   return { loading, error, data };
 }
