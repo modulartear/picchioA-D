@@ -185,8 +185,9 @@ export function Home() {
             <button
               className="btn btn--primary btn--lg"
               onClick={() =>
-                openCta(hero?.primaryCtaHref, () => {
-                  nav("/cat/a-medida");
+                openCta(String(hero?.primaryCtaHref || "").trim() === "/cat/a-medida" ? "#proyectos" : hero?.primaryCtaHref || "#proyectos", () => {
+                  const el = document.getElementById("proyectos");
+                  if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: "smooth" });
                 })
               }
             >
@@ -195,9 +196,11 @@ export function Home() {
             <button
               className="btn btn--ghost btn--lg"
               onClick={() =>
-                openCta(hero?.secondaryCtaHref, () => {
-                  setCotizadorOpen(true);
-                })
+                String(hero?.secondaryCtaHref || "").trim()
+                  ? openCta(hero?.secondaryCtaHref, () => {
+                      setCotizadorOpen(true);
+                    })
+                  : setCotizadorOpen(true)
               }
             >
               {hero?.secondaryCtaLabel || "Cotizar mi proyecto"}

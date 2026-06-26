@@ -62,8 +62,8 @@ export const DEFAULT_HERO = {
   titleLine2: "",
   highlightText: "que imaginás.",
   lead: "Diseño, fabricación propia y entrega a todo el país. Cocinas, placards, sillas, sillones y cortinas roller.",
-  primaryCtaLabel: "Ver muebles a medida",
-  primaryCtaHref: "/cat/a-medida",
+  primaryCtaLabel: "Ver proyectos",
+  primaryCtaHref: "#proyectos",
   secondaryCtaLabel: "Cotizar mi proyecto",
   secondaryCtaHref: "",
 };
