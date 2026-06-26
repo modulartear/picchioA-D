@@ -72,6 +72,36 @@ export function Home() {
   const { featured, categories, projects, img, hero } = data;
   const [heroSlideIndex, setHeroSlideIndex] = useState(0);
 
+  function openCta(href, fallback) {
+    const clean = String(href || "").trim();
+    if (!clean) {
+      fallback();
+      return;
+    }
+    const isHttp = /^https?:\/\//i.test(clean);
+    const isSpecial = /^(mailto:|tel:|whatsapp:)/i.test(clean);
+    if (isHttp) {
+      window.open(clean, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (isSpecial) {
+      window.location.href = clean;
+      return;
+    }
+    if (clean.startsWith("#")) {
+      const el = document.querySelector(clean);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        const y = Math.max(0, window.scrollY + rect.top - 80);
+        window.scrollTo({ top: y, behavior: "smooth" });
+        return;
+      }
+      fallback();
+      return;
+    }
+    nav(clean);
+  }
+
   const heroSlides = useMemo(() => {
     const raw = Array.isArray(hero?.slides) ? hero.slides : [];
     const clean = raw.map((x) => String(x || "").trim()).filter(Boolean).slice(0, 4);
@@ -152,10 +182,24 @@ export function Home() {
           </h1>
           <p className="hero__lead">{hero?.lead || "Diseño, fabricación propia y entrega a todo el país. Cocinas, placards, sillas, sillones y cortinas roller."}</p>
           <div className="hero__ctas">
-            <button className="btn btn--primary btn--lg" onClick={() => nav("/cat/a-medida")}>
+            <button
+              className="btn btn--primary btn--lg"
+              onClick={() =>
+                openCta(hero?.primaryCtaHref, () => {
+                  nav("/cat/a-medida");
+                })
+              }
+            >
               {hero?.primaryCtaLabel || "Ver muebles a medida"} <Icon.Arrow style={{ width: 18, height: 18 }} />
             </button>
-            <button className="btn btn--ghost btn--lg" onClick={() => setCotizadorOpen(true)}>
+            <button
+              className="btn btn--ghost btn--lg"
+              onClick={() =>
+                openCta(hero?.secondaryCtaHref, () => {
+                  setCotizadorOpen(true);
+                })
+              }
+            >
               {hero?.secondaryCtaLabel || "Cotizar mi proyecto"}
             </button>
           </div>

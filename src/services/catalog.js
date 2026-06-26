@@ -63,7 +63,9 @@ export const DEFAULT_HERO = {
   highlightText: "que imaginás.",
   lead: "Diseño, fabricación propia y entrega a todo el país. Cocinas, placards, sillas, sillones y cortinas roller.",
   primaryCtaLabel: "Ver muebles a medida",
+  primaryCtaHref: "/cat/a-medida",
   secondaryCtaLabel: "Cotizar mi proyecto",
+  secondaryCtaHref: "",
 };
 
 export const DEFAULT_CHECKOUT = {
@@ -197,7 +199,9 @@ export async function fetchSiteContent() {
       highlightText: String(heroRaw.highlightText || DEFAULT_HERO.highlightText || "").trim(),
       lead: String(heroRaw.lead || DEFAULT_HERO.lead || "").trim(),
       primaryCtaLabel: String(heroRaw.primaryCtaLabel || DEFAULT_HERO.primaryCtaLabel || "").trim(),
+      primaryCtaHref: String(heroRaw.primaryCtaHref || DEFAULT_HERO.primaryCtaHref || "").trim(),
       secondaryCtaLabel: String(heroRaw.secondaryCtaLabel || DEFAULT_HERO.secondaryCtaLabel || "").trim(),
+      secondaryCtaHref: String(heroRaw.secondaryCtaHref || DEFAULT_HERO.secondaryCtaHref || "").trim(),
     },
     checkout: { shippingOptions, paymentOptions },
   };

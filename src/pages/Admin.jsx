@@ -146,7 +146,9 @@ export function Admin() {
     heroHighlightText: DEFAULT_HERO.highlightText,
     heroLead: DEFAULT_HERO.lead,
     heroPrimaryCtaLabel: DEFAULT_HERO.primaryCtaLabel,
+    heroPrimaryCtaHref: DEFAULT_HERO.primaryCtaHref,
     heroSecondaryCtaLabel: DEFAULT_HERO.secondaryCtaLabel,
+    heroSecondaryCtaHref: DEFAULT_HERO.secondaryCtaHref,
     aboutShop: "",
   });
   const [uploadingHeroSlides, setUploadingHeroSlides] = useState(false);
@@ -507,7 +509,9 @@ export function Admin() {
       heroHighlightText: String(heroRaw?.highlightText || DEFAULT_HERO.highlightText || "").trim(),
       heroLead: String(heroRaw?.lead || DEFAULT_HERO.lead || "").trim(),
       heroPrimaryCtaLabel: String(heroRaw?.primaryCtaLabel || DEFAULT_HERO.primaryCtaLabel || "").trim(),
+      heroPrimaryCtaHref: String(heroRaw?.primaryCtaHref || DEFAULT_HERO.primaryCtaHref || "").trim(),
       heroSecondaryCtaLabel: String(heroRaw?.secondaryCtaLabel || DEFAULT_HERO.secondaryCtaLabel || "").trim(),
+      heroSecondaryCtaHref: String(heroRaw?.secondaryCtaHref || DEFAULT_HERO.secondaryCtaHref || "").trim(),
       aboutShop: String(img?.aboutShop || DEFAULT_IMAGES.aboutShop || "").trim(),
     });
   }, [DEFAULT_HERO, DEFAULT_IMAGES.aboutShop, settingsTab, siteContentDoc.data, tab]);
@@ -755,7 +759,9 @@ export function Admin() {
             highlightText: String(siteImagesDraft.heroHighlightText || "").trim(),
             lead: String(siteImagesDraft.heroLead || "").trim(),
             primaryCtaLabel: String(siteImagesDraft.heroPrimaryCtaLabel || "").trim(),
+            primaryCtaHref: String(siteImagesDraft.heroPrimaryCtaHref || "").trim(),
             secondaryCtaLabel: String(siteImagesDraft.heroSecondaryCtaLabel || "").trim(),
+            secondaryCtaHref: String(siteImagesDraft.heroSecondaryCtaHref || "").trim(),
           },
           updatedAt: serverTimestamp(),
         },
@@ -2083,20 +2089,34 @@ export function Admin() {
                             />
                           </Field>
                           <Field label="Botón principal">
-                            <input
-                              value={siteImagesDraft.heroPrimaryCtaLabel}
-                              onChange={(e) => setSiteImagesDraft((p) => ({ ...p, heroPrimaryCtaLabel: e.target.value }))}
-                              placeholder="Ver muebles a medida"
-                            />
+                            <div style={{ display: "grid", gap: 8 }}>
+                              <input
+                                value={siteImagesDraft.heroPrimaryCtaLabel}
+                                onChange={(e) => setSiteImagesDraft((p) => ({ ...p, heroPrimaryCtaLabel: e.target.value }))}
+                                placeholder="Ver muebles a medida"
+                              />
+                              <input
+                                value={siteImagesDraft.heroPrimaryCtaHref}
+                                onChange={(e) => setSiteImagesDraft((p) => ({ ...p, heroPrimaryCtaHref: e.target.value }))}
+                                placeholder="Link (ej: /cat/a-medida o https://...)"
+                              />
+                            </div>
                           </Field>
                         </div>
                         <div className="field-grid">
                           <Field label="Botón secundario">
-                            <input
-                              value={siteImagesDraft.heroSecondaryCtaLabel}
-                              onChange={(e) => setSiteImagesDraft((p) => ({ ...p, heroSecondaryCtaLabel: e.target.value }))}
-                              placeholder="Cotizar mi proyecto"
-                            />
+                            <div style={{ display: "grid", gap: 8 }}>
+                              <input
+                                value={siteImagesDraft.heroSecondaryCtaLabel}
+                                onChange={(e) => setSiteImagesDraft((p) => ({ ...p, heroSecondaryCtaLabel: e.target.value }))}
+                                placeholder="Cotizar mi proyecto"
+                              />
+                              <input
+                                value={siteImagesDraft.heroSecondaryCtaHref}
+                                onChange={(e) => setSiteImagesDraft((p) => ({ ...p, heroSecondaryCtaHref: e.target.value }))}
+                                placeholder="Link (opcional)"
+                              />
+                            </div>
                           </Field>
                         </div>
                         <Field label="Bajada">
